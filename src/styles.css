@@ -31,3 +31,18 @@
 .train-time b{font-size:18px;font-weight:800;color:#071b36}
 .time-arrow{color:#2874df;font-size:19px;font-weight:800}
 @media(max-width:600px){.train-title{font-size:18px!important}.train-time{font-size:14px!important;gap:6px}.train-time b{font-size:16px}.train-leg{padding:11px}}
+
+/* Licensed rail-data partnership contacts */
+.partners{max-width:1120px;margin:38px auto 54px;padding:0 22px}
+.partners h2{max-width:650px}
+.partners-intro{max-width:780px;color:#687b92;font-size:13px;line-height:1.7;margin:-4px 0 18px}
+.partner-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.partner-card{background:#fff;border:1px solid #e3eaf3;border-radius:12px;padding:18px;min-height:170px}
+.partner-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.partner-card h3{margin:0;color:#102744;font:800 17px Manrope,sans-serif}
+.partner-tag{white-space:nowrap;background:#eaf2ff;color:#286bc9;border-radius:20px;padding:5px 8px;font-size:9px;font-weight:700}
+.partner-card p{min-height:42px;color:#687b92;font-size:12px;line-height:1.6}
+.partner-card a{display:inline-block;color:#2168ce;font-size:12px;font-weight:700;text-decoration:none}
+.partner-card a:hover{text-decoration:underline}
+.partner-disclaimer{margin-top:14px;padding:13px 15px;border:1px solid #e6ebf2;border-radius:9px;background:#f8fafd;color:#687b92;font-size:11px;line-height:1.6}
+@media(max-width:760px){.partner-grid{grid-template-columns:1fr}.partner-card p{min-height:0}}
