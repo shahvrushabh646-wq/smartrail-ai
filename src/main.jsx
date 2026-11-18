@@ -151,6 +151,31 @@ function App() {
             ))}
         </>}
       </section>
+      <section className="partners" aria-labelledby="partners-title">
+        <div className="sectionhead">
+          <div><p className="eyebrow">DATA PARTNERSHIPS</p><h2 id="partners-title">Help us bring verified rail data to SmartRail</h2></div>
+          <span className="pill">PARTNERSHIP ENQUIRIES</span>
+        </div>
+        <p className="partners-intro">We are exploring licensed data partnerships for reliable train schedules and class-wise seat availability. These are contact leads only; no provider is connected or has approved SmartRail AI yet.</p>
+        <div className="partner-grid">
+          <article className="partner-card">
+            <div className="partner-top"><h3>RailYatri</h3><span className="partner-tag">First contact</span></div>
+            <p>Explore a licensed train-search and seat-availability data partnership.</p>
+            <a href="https://www.railyatri.in/contact-us" target="_blank" rel="noreferrer">Official contact page ↗</a>
+          </article>
+          <article className="partner-card">
+            <div className="partner-top"><h3>ixigo / ConfirmTkt</h3><span className="partner-tag">First contact</span></div>
+            <p>Ask about authorised API access or a commercial data-sharing agreement.</p>
+            <a href="https://www.ixigo.com/" target="_blank" rel="noreferrer">Official ixigo website ↗</a>
+          </article>
+          <article className="partner-card">
+            <div className="partner-top"><h3>TripJack</h3><span className="partner-tag">B2B lead</span></div>
+            <p>Approach its B2B team to confirm whether a suitable rail-data integration is available.</p>
+            <a href="https://www.tripjack.com/" target="_blank" rel="noreferrer">Official TripJack website ↗</a>
+          </article>
+        </div>
+        <div className="partner-disclaimer">Integration status: Not connected · Written permission, API documentation and commercial terms are required before any provider data is used. SmartRail will not access private app APIs or reuse another app's credentials.</div>
+      </section>
       <footer>SmartRail AI · No invented trains or seat availability. Recheck before booking.</footer>
     </main>
   );
