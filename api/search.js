@@ -136,9 +136,9 @@ export default async function handler(req, res) {
           availabilityLimit: remote.availabilityLimit,
           availabilityCreditsRequested: remote.availabilityCreditsRequested,
           routeType,
-          sourceNote: all.length
+          sourceNote: all.length || backupConnections.length
             ? `${remote.sourceNote} Via-station routes use the imported timetable when available.${backupSourceNote} Verify each provider's source and update time.`
-            : `${remote.sourceNote} Direct trains are available through this provider. Via-station option is enabled, but no verified timetable is imported yet, so no connecting trains can be displayed.`,
+            : `${remote.sourceNote} Direct trains are available through RailCore. No verified connecting timetable is available for this search because no imported timetable or working RailRadar backup was returned.`,
           generatedAt: new Date().toISOString()
         });
       } catch (error) {
