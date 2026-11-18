@@ -211,7 +211,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
       const confirmed = status === 'AVAILABLE' && freshness === 'FRESH';
       let reason = null;
       if (freshness === 'UNKNOWN') reason = 'Provider did not supply a valid class-level update timestamp; availability is unverified.';
-      else if (freshness === 'STALE') reason = `Stale provider update (${Math.floor(ageMinutes)} minutes old). Last reported: ${live.availability_text || status}. Recheck before booking.`;
+      else if (freshness === 'STALE') reason = `Stale provider update (more than ${Math.floor(ageMinutes)} full minutes old). Last reported: ${live.availability_text || status}. Recheck before booking.`;
       else if (status !== 'AVAILABLE') reason = live.availability_text || status;
       return {
         class: cls,
@@ -225,7 +225,8 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
         reason,
         providerStatus: status,
         freshness,
-        freshnessAgeMinutes: ageMinutes == null ? null : Math.floor(ageMinutes),
+        freshnessAgeMinutes: ageMinutes == null ? null : (freshness === 'STALE' ? Math.ceil(ageMinutes) : Math.floor(ageMinutes)),
+        freshnessThresholdMinutes: staleAfterMinutes,
         fetchedAt,
         source: 'RailCore'
       };
