@@ -103,11 +103,23 @@ export default async function handler(req, res) {
         const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
         const localConnections = findConnections(all, remote.from, remote.to);
         const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
+        let backupConnections = [];
+        let backupSourceNote = '';
+        if (routeType !== 'DIRECT' && !all.length && isRailRadarConfigured()) {
+          try {
+            const backup = await searchRailRadarJourney(fromInput, toInput, date, travelClass, 'ALL');
+            backupConnections = backup.results.filter(route => route.segments.length > 1);
+            backupSourceNote = ` RailRadar independently supplied ${backupConnections.length} connecting itinerary(s); seat availability from that source is not confirmed.`;
+          } catch (backupError) {
+            backupSourceNote = ` RailRadar connection fallback was unavailable: ${backupError?.message || 'provider error'}.`;
+          }
+        }
+        const viaResults = [...connectionResults, ...backupConnections];
         const results = routeType === 'DIRECT'
           ? remote.results
           : routeType === 'VIA'
-            ? connectionResults
-            : [...remote.results, ...connectionResults];
+            ? viaResults
+            : [...remote.results, ...viaResults];
         results.sort((a, b) => {
           if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
           return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
@@ -118,14 +130,14 @@ export default async function handler(req, res) {
           date,
           results,
           timetableRecords: all.length,
-          source: remote.source,
+          source: backupConnections.length ? 'RailCore + RailRadar' : remote.source,
           providerCheckedAt: remote.providerCheckedAt,
           availabilityChecked: remote.availabilityChecked,
           availabilityLimit: remote.availabilityLimit,
           availabilityCreditsRequested: remote.availabilityCreditsRequested,
           routeType,
           sourceNote: all.length
-            ? `${remote.sourceNote} Via-station routes are calculated from the separately imported timetable and use a separate authorised availability provider. Verify the timetable's source and update date.`
+            ? `${remote.sourceNote} Via-station routes use the imported timetable when available.${backupSourceNote} Verify each provider's source and update time.`
             : `${remote.sourceNote} Direct trains are available through this provider. Via-station option is enabled, but no verified timetable is imported yet, so no connecting trains can be displayed.`,
           generatedAt: new Date().toISOString()
         });
