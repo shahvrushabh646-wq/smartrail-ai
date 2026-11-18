@@ -85,9 +85,11 @@ export default async function handler(req, res) {
     const toInput = String(body.to || '').trim();
     const date = body.date;
     const travelClass = String(body.travelClass || 'ALL').trim().toUpperCase();
+    const routeType = String(body.routeType || 'ALL').trim().toUpperCase();
 
     if (!fromInput || !toInput) return res.status(400).json({ error: 'Enter both origin and destination stations.' });
     if (!validDate(date)) return res.status(400).json({ error: 'Enter a valid journey date in YYYY-MM-DD format.' });
+    if (!['ALL', 'DIRECT', 'VIA'].includes(routeType)) return res.status(400).json({ error: 'Select Direct + Via, Direct only, or Via station only.' });
     if (travelClass !== 'ALL' && !/^[A-Z0-9]{2,3}$/.test(travelClass)) {
       return res.status(400).json({ error: 'Select a valid travel class.' });
     }
@@ -98,7 +100,11 @@ export default async function handler(req, res) {
       const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
       const localConnections = findConnections(all, remote.from, remote.to);
       const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
-      const results = [...remote.results, ...connectionResults];
+      const results = routeType === 'DIRECT'
+        ? remote.results
+        : routeType === 'VIA'
+          ? connectionResults
+          : [...remote.results, ...connectionResults];
       results.sort((a, b) => {
         if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
         return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
@@ -114,9 +120,10 @@ export default async function handler(req, res) {
         availabilityChecked: remote.availabilityChecked,
         availabilityLimit: remote.availabilityLimit,
         availabilityCreditsRequested: remote.availabilityCreditsRequested,
+        routeType,
         sourceNote: all.length
-          ? `${remote.sourceNote} Connecting routes are calculated from the separately loaded local timetable; verify its source and update date.`
-          : `${remote.sourceNote} Direct trains are available through this provider. Via-station split routes will appear after a verified multi-stop timetable is imported.`,
+          ? `${remote.sourceNote} Via-station routes are calculated from the separately imported timetable and use a separate authorised availability provider. Verify the timetable's source and update date.`
+          : `${remote.sourceNote} Direct trains are available through this provider. Via-station option is enabled, but no verified timetable is imported yet, so no connecting trains can be displayed.`,
         generatedAt: new Date().toISOString()
       });
     }
@@ -136,8 +143,8 @@ export default async function handler(req, res) {
 
     const norm = value => String(value || '').trim().toUpperCase();
     const direct = all.filter(train => norm(train.from) === norm(fromInput) && norm(train.to) === norm(toInput));
-    const routes = direct.map(train => ({ train, segments: [train] }));
-    routes.push(...findConnections(all, fromInput, toInput));
+    const routes = routeType === 'VIA' ? [] : direct.map(train => ({ train, segments: [train] }));
+    if (routeType !== 'DIRECT') routes.push(...findConnections(all, fromInput, toInput));
     const results = await addLocalAvailability(routes, date, travelClass);
     results.sort((a, b) => {
       if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
@@ -149,6 +156,7 @@ export default async function handler(req, res) {
       to: toInput,
       date,
       results,
+      routeType,
       timetableRecords: all.length,
       sourceNote: 'Routes are based on the locally imported timetable. Seat availability is shown only when a separate authorised provider confirms every leg.',
       generatedAt: new Date().toISOString()
