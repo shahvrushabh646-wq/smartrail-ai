@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 
 const CLASSES = ['1A', '2A', '3A', '3E', 'SL', '2S', 'CC', 'EC', 'EA', 'EV', 'FC'];
-const today = new Date().toLocaleDateString('en-CA');
+const now = new Date();
+const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
 
 function App() {
   const [from, setFrom] = useState('');
