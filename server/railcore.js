@@ -178,9 +178,9 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
   const departedCount = date === now.date
     ? allTrains.filter(train => train.departureMinutes <= now.minutes).length
     : 0;
-  const trains = date === now.date
+  const trains = (date === now.date
     ? allTrains.filter(train => train.departureMinutes > now.minutes)
-    : allTrains;
+    : allTrains).sort((a, b) => a.departureMinutes - b.departureMinutes);
 
   const availability = await freshAvailability(trains, date, travelClass);
   const results = trains.map((train, index) => {
@@ -202,7 +202,8 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
       const status = String(live.status || 'UNKNOWN').toUpperCase();
       const fetchedAt = live.last_updated_at || null;
       const fetchedMs = fetchedAt ? Date.parse(fetchedAt) : NaN;
-      const ageMinutes = Number.isFinite(fetchedMs)
+      const clockSkewMinutes = Number.isFinite(fetchedMs) ? (fetchedMs - Date.now()) / 60000 : null;
+      const ageMinutes = Number.isFinite(fetchedMs) && clockSkewMinutes <= 2
         ? Math.max(0, (Date.now() - fetchedMs) / 60000)
         : null;
       const staleAfterMinutes = Math.max(1, Math.min(60, Number(process.env.RAILCORE_FRESHNESS_MINUTES || 15)));
