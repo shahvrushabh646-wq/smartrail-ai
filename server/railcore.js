@@ -130,27 +130,29 @@ function indiaClock() {
 }
 
 async function freshAvailability(trains, date, travelClass) {
-  // RailCore accepts at most 25 train items per batch. Check every timetable
-  // result in batches; each requested train/class combination consumes credits.
-  const items = trains.map(train => {
+  // RailCore accepts up to 25 train items per batch and up to 8 classes
+  // per item. Split larger class lists and train lists without skipping any.
+  const items = [];
+  for (const train of trains) {
     const classes = travelClass === 'ALL'
-      ? train.classes.slice(0, 8)
+      ? train.classes
       : train.classes.includes(travelClass) ? [travelClass] : [];
-    return {
-      train_number: train.trainNo,
-      from: train.from,
-      to: train.to,
-      date,
-      classes,
-      quota: 'GN'
-    };
-  }).filter(item => item.classes.length);
+    for (let offset = 0; offset < classes.length; offset += 8) {
+      items.push({
+        train_number: train.trainNo,
+        from: train.from,
+        to: train.to,
+        date,
+        classes: classes.slice(offset, offset + 8),
+        quota: 'GN'
+      });
+    }
+  }
 
   const byTrain = new Map();
-  const checkedTrainNumbers = new Set();
   const attemptedTrainNumbers = new Set(items.map(item => String(item.train_number)));
-  const failedTrainNumbers = new Map();
-  let checkedCount = 0;
+  const failedClasses = new Map();
+  const returnedTrainNumbers = new Set();
   let creditsRequested = 0;
 
   for (let offset = 0; offset < items.length; offset += 25) {
@@ -162,33 +164,44 @@ async function freshAvailability(trains, date, travelClass) {
         body: JSON.stringify({ items: batch })
       });
       const rows = payload?.data?.results || payload?.results || [];
+      const returnedByTrain = new Map();
       for (const row of rows) {
         const key = String(row.train_number || '');
         if (!key) continue;
-        const classes = new Map((row.classes || []).map(item => [String(item.class_code).trim().toUpperCase(), item]));
-        byTrain.set(key, classes);
-        checkedTrainNumbers.add(key);
-        checkedCount += 1;
+        const existing = byTrain.get(key) || new Map();
+        const returned = new Map((row.classes || []).map(item => [String(item.class_code).trim().toUpperCase(), item]));
+        for (const [classCode, value] of returned) existing.set(classCode, value);
+        byTrain.set(key, existing);
+        returnedTrainNumbers.add(key);
+        returnedByTrain.set(key, new Set([...(returnedByTrain.get(key) || []), ...returned.keys()]));
       }
-      // A successful batch can still omit an individual train response.
       for (const item of batch) {
         const key = String(item.train_number);
-        if (!byTrain.has(key)) failedTrainNumbers.set(key, 'Provider did not return an availability result for this train.');
+        const returned = returnedByTrain.get(key) || new Set();
+        for (const classCode of item.classes) {
+          if (!returned.has(classCode)) {
+            if (!failedClasses.has(key)) failedClasses.set(key, new Map());
+            failedClasses.get(key).set(classCode, 'The provider did not return this train/class combination.');
+          }
+        }
       }
     } catch (error) {
       const reason = error?.message || 'Availability provider request failed.';
-      for (const item of batch) failedTrainNumbers.set(String(item.train_number), reason);
+      for (const item of batch) {
+        const key = String(item.train_number);
+        if (!failedClasses.has(key)) failedClasses.set(key, new Map());
+        for (const classCode of item.classes) failedClasses.get(key).set(classCode, reason);
+      }
     }
   }
 
   return {
     byTrain,
-    checkedCount,
+    checkedCount: returnedTrainNumbers.size,
     creditsRequested,
     limit: trains.length,
-    checkedTrainNumbers,
     attemptedTrainNumbers,
-    failedTrainNumbers
+    failedClasses
   };
 }
 
@@ -222,13 +235,13 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     const classResults = classCodes.map(cls => {
       const live = checkedClasses?.get(cls);
       if (!live) {
+        const failure = availability.failedClasses.get(train.trainNo)?.get(cls);
         return {
           class: cls,
-          status: availability.failedTrainNumbers.has(train.trainNo) ? 'ERROR' : 'UNAVAILABLE',
-          reason: availability.failedTrainNumbers.get(train.trainNo) ||
-            (availability.attemptedTrainNumbers.has(train.trainNo)
-              ? 'Live availability was not returned by the provider.'
-              : 'No live availability request was made for this class.')
+          status: failure ? 'ERROR' : 'UNAVAILABLE',
+          reason: failure || (availability.attemptedTrainNumbers.has(train.trainNo)
+            ? 'The provider did not return this class.'
+            : 'No live availability request was made for this class.')
         };
       }
       const status = String(live.status || 'UNKNOWN').toUpperCase();
