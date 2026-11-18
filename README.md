@@ -47,7 +47,7 @@ For local timetable imports, each consecutive train segment must include:
 
 Minutes are local clock minutes after midnight. Day offsets are relative to the journey date. The route planner applies a minimum 30-minute interchange and only offers classes common to every leg. Split-route seat checks require an authorised provider that returns one availability status per segment. Every segment must be available/confirmed; RAC, WL and partial confirmations are excluded. Separate PNRs do not protect a missed connection if the first train is delayed.
 
-**Important:** RailCore supplies the primary direct search. When RailRadar is configured, SmartRail also uses its documented journey planner to obtain connecting-route schedules (including when RailCore is healthy and the selected route mode includes Via). If RailCore fails, RailRadar can supply both direct and connecting timetable results. RailRadar does not confirm live seats; availability remains unverified until a separate authorised provider confirms every leg.
+**Important:** RailCore supplies the primary direct search. When RailRadar is configured, SmartRail also uses its documented journey planner to obtain connecting-route schedules (including when RailCore is healthy and the selected route mode includes Via). If RailCore fails, RailRadar can supply both direct and connecting timetable results. RailRadar also documents a seat-availability endpoint (`GET /v1/trains/{number}/seats`). SmartRail checks each requested class for each leg and shows a route as confirmed only when every leg returns a fresh AVAILABLE result. RAC, waitlist, stale timestamps, errors and request-budget-skipped combinations are not labelled confirmed. The endpoint describes its data as aggregated from external sources, not authoritative; always verify critical details on IRCTC. Each train/class/leg check consumes a provider request. Set `RAILRADAR_AVAILABILITY_LIMIT` (1–60, default 24) to control the maximum route/class checks per search and `RAILRADAR_QUOTA` (default `GN`) to select quota.
 
 ## Official integration option
 
@@ -79,7 +79,8 @@ Station names are resolved through the configured provider. If a name matches mu
 2. Root directory: `./`.
 3. Build command: `npm run build`; output: `dist`.
 4. Add `RAILCORE_KEY` and/or `RAILRADAR_API_KEY` in Vercel Environment Variables. RailRadar is the automatic schedule/connection fallback when RailCore is unavailable.
-5. Deploy the latest `main` commit.
-6. Check `/api/health`, then test a journey search.
+5. Optionally set `RAILRADAR_AVAILABILITY_LIMIT` and `RAILRADAR_QUOTA` to control seat-check volume and quota.
+6. Deploy the latest `main` commit.
+7. Check `/api/health`, then test a journey search.
 
 This is an informational search tool, not a booking engine. Recheck availability at the final booking source before purchasing tickets.
