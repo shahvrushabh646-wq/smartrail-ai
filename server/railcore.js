@@ -45,11 +45,29 @@ async function resolveStation(input) {
   const matches = payload?.data?.results || payload?.results || [];
   if (!matches.length) throw new Error(`No station matched "${raw}". Try its official station code.`);
 
+  const normalise = value => String(value || '')
+    .toLowerCase()
+    .replace(/\\b(junction|jn\\.?|railway station)\\b/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+
   const exact = matches.find(item =>
     String(item.station_name || '').toLowerCase() === raw.toLowerCase() ||
     String(item.display_name || '').toLowerCase() === raw.toLowerCase()
   );
   if (exact) return exact.station_code;
+
+  // A city name often returns several nearby stations. If exactly one result
+  // is the city's named main junction (e.g. "Pune" -> "PUNE JN."),
+  // select that canonical junction instead of failing the whole search.
+  const cityKey = normalise(raw);
+  const mainJunctions = matches.filter(item => {
+    const name = String(item.station_name || item.display_name || '');
+    const key = normalise(name);
+    const isJunction = /\\b(junction|jn\\.?)\\b/i.test(name);
+    return isJunction && key === cityKey;
+  });
+  if (mainJunctions.length === 1) return mainJunctions[0].station_code;
 
   const top = matches[0];
   const second = matches[1];
