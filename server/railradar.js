@@ -23,7 +23,7 @@ async function request(path, options = {}) {
 }
 
 const normalise = value => String(value || '').toLowerCase()
-  .replace(/\b(junction|jn\\.?|railway station)\b/g, '')
+  .replace(/\b(junction|jn\.?|railway station)\b/g, '')
   .replace(/[^a-z0-9]/g, '');
 
 async function resolveStation(input) {
@@ -245,7 +245,7 @@ export async function searchRailRadarJourney(fromInput, toInput, date, travelCla
     availabilityChecked: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length, 0),
     availabilityCreditsRequested: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length * route.segments.length, 0),
     availabilityLimit: Math.min(24, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
-    sourceNote: 'RailRadar is an independent third-party timetable and route-data provider, not Indian Railways or IRCTC. Its route planner supplies direct and connecting train schedules, but this response does not confirm live seat availability. Seats remain unverified unless a separate authorised availability provider confirms them.'
+    sourceNote: 'RailRadar is an independent third-party timetable and route-data provider, not Indian Railways or IRCTC. Its route planner supplies direct and connecting train schedules. Seat availability is queried for each checked train/class/leg using RailRadar's documented seat endpoint. Only fresh AVAILABLE results across every leg are marked confirmed; RAC, waitlist, stale, failed and budget-skipped checks are not confirmed. RailRadar describes this seat data as an external aggregation, not authoritative; verify critical details on IRCTC.'
   };
 }
 
