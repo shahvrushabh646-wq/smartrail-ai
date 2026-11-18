@@ -34,7 +34,13 @@ function findConnections(all, from, to) {
       }
     }
   }
-  return connections;
+  const seen = new Set();
+  return connections.filter(route => {
+    const key = route.segments.map(segment => [segment.trainNo || segment.train_number || '', norm(segment.from), norm(segment.to), segment.departureTime || segment.departure_time || ''].join('|')).join('>');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function addLocalAvailability(routes, date, travelClass) {
