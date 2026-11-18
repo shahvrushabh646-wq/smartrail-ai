@@ -47,7 +47,7 @@ For local timetable imports, each consecutive train segment must include:
 
 Minutes are local clock minutes after midnight. Day offsets are relative to the journey date. The route planner applies a minimum 30-minute interchange and only offers classes common to every leg. Split-route seat checks require an authorised provider that returns one availability status per segment. Every segment must be available/confirmed; RAC, WL and partial confirmations are excluded. Separate PNRs do not protect a missed connection if the first train is delayed.
 
-**Important:** The RailCore integration currently returns direct train options. It does not magically create a complete connecting-route timetable. Via-station options remain disabled until a verified multi-stop timetable is imported and the relevant availability provider is configured.
+**Important:** RailCore supplies the primary direct search. When RailRadar is configured, SmartRail also uses its documented journey planner to obtain connecting-route schedules (including when RailCore is healthy and the selected route mode includes Via). If RailCore fails, RailRadar can supply both direct and connecting timetable results. RailRadar does not confirm live seats; availability remains unverified until a separate authorised provider confirms every leg.
 
 ## Official integration option
 
