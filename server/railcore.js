@@ -64,7 +64,7 @@ async function resolveStation(input) {
 }
 
 function minutes(value) {
-  const match = /^(\\d{1,2}):(\\d{2})$/.exec(String(value || ''));
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''));
   if (!match) return null;
   const h = Number(match[1]), m = Number(match[2]);
   if (h > 23 || m > 59) return null;
