@@ -11,7 +11,7 @@ async function request(path, options = {}) {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {})
     },
-    signal: AbortSignal.timeout(6000)
+    signal: AbortSignal.timeout(4000)
   });
   let payload;
   try { payload = await response.json(); }
@@ -129,11 +129,11 @@ async function addRailRadarAvailability(routes, date, travelClass) {
 
   // Keep the serverless request bounded. Unchecked combinations are explicitly
   // labelled, never inferred as unavailable or confirmed.
-  const maxChecks = Math.max(1, Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)));
+  const maxChecks = Math.max(1, Math.min(24, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)));
   const selected = checks.slice(0, maxChecks);
   const byRoute = routes.map(() => []);
   let cursor = 0;
-  const workers = Array.from({ length: 4 }, async () => {
+  const workers = Array.from({ length: 8 }, async () => {
     while (cursor < selected.length) {
       const check = selected[cursor++];
       const route = routes[check.routeIndex];
@@ -177,7 +177,7 @@ async function addRailRadarAvailability(routes, date, travelClass) {
   });
   await Promise.all(workers);
 
-  return routes.map((route, index) => {
+  const finalRoutes = routes.map((route, index) => {
     const checked = byRoute[index];
     const sets = route.segments.map(segment => new Set(segment.classes || []));
     const common = [...(sets[0] || [])].filter(cls => sets.every(set => set.has(cls)) && (travelClass === 'ALL' || cls === travelClass));
@@ -192,6 +192,7 @@ async function addRailRadarAvailability(routes, date, travelClass) {
     }
     return { ...route, availability: checked };
   });
+  return finalRoutes;
 }
 
 export async function searchRailRadarJourney(fromInput, toInput, date, travelClass = 'ALL', routeType = 'ALL') {
