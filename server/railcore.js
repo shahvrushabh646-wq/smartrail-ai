@@ -136,7 +136,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
   if (from === to) throw new Error('Origin and destination must be different stations.');
 
   const query = new URLSearchParams({ from, to, date, match: 'station' });
-  const payload = await request(`/journeys/search?${query.toString()}`);
+  const payload = await request(`/routes/trains?${query.toString()}`);
   const rawTrains = payload?.data?.trains || payload?.trains || [];
   const trains = rawTrains.map(normaliseTrain).filter(train =>
     train.trainNo && train.from && train.to && train.departureMinutes != null &&
