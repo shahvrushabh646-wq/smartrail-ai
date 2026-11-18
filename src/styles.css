@@ -16,3 +16,7 @@
 .classrow span.notavailable{color:#a45b17!important;font-weight:700}.classrow span.stale{color:#b42318!important;font-weight:700}.classrow span.confirmed{color:#16804a!important;font-weight:700}.classrow span small{font-weight:400}
 
 .classrow span .availability-state{display:block;margin-bottom:3px}.classrow span.unchecked{color:#64758b!important;font-weight:600}.classrow span small{line-height:1.45;margin-top:5px}.classrow span.stale{color:#b42318!important}.classrow span.notavailable{color:#9a6416!important}
+
+/* Make each train number, name and timing easy to scan. */
+.train-summary{margin:12px 0 14px!important;color:#14243a!important;font:700 14px/1.65 'Manrope','DM Sans',sans-serif!important;letter-spacing:.05px}.result .train-summary{font-weight:800!important}
+@media(max-width:600px){.train-summary{font-size:13px!important;line-height:1.7!important}}
