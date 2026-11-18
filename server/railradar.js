@@ -61,8 +61,10 @@ function dayDifference(fromDate, toDate) {
 function normaliseLeg(leg) {
   const dep = toMinutes(leg?.from?.departure);
   const arr = toMinutes(leg?.to?.arrival);
-  const depDay = Math.max(0, Number(leg?.from?.day || 1) - 1);
-  const arrDay = Math.max(depDay, Number(leg?.to?.day || 1) - 1);
+  const depDay = leg?.from?.date ? dayDifference(leg.from.date, leg?.from?.date) : Math.max(0, Number(leg?.from?.day || 1) - 1);
+  const arrDay = leg?.to?.date && leg?.from?.date
+    ? Math.max(depDay, dayDifference(leg.from.date, leg.to.date))
+    : Math.max(depDay, Number(leg?.to?.day || 1) - 1);
   return {
     trainNo: String(leg?.train?.number || ''),
     name: String(leg?.train?.name || ''),
