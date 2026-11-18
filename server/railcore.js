@@ -47,7 +47,7 @@ async function resolveStation(input) {
 
   const normalise = value => String(value || '')
     .toLowerCase()
-    .replace(/\\b(junction|jn\\.?|railway station)\\b/g, '')
+    .replace(/\b(junction|jn\.?|railway station)\b/g, '')
     .replace(/[^a-z0-9]/g, '')
     .trim();
 
@@ -64,7 +64,7 @@ async function resolveStation(input) {
   const mainJunctions = matches.filter(item => {
     const name = String(item.station_name || item.display_name || '');
     const key = normalise(name);
-    const isJunction = /\\b(junction|jn\\.?)\\b/i.test(name);
+    const isJunction = /\b(junction|jn\.?)\b/i.test(name);
     return isJunction && key === cityKey;
   });
   if (mainJunctions.length === 1) return mainJunctions[0].station_code;
