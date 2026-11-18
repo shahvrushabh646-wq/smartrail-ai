@@ -91,6 +91,109 @@ function routeFromLegs(legs, via) {
   return { train: segments.length === 1 ? segments[0] : null, segments, via: via || (segments.length > 1 ? segments[0].to : null), interchangeMinutes: null, source: 'RailRadar' };
 }
 
+
+async function checkSeatAvailability(segment, journeyDate, classCode) {
+  const params = new URLSearchParams({
+    source: segment.from,
+    destination: segment.to,
+    journeyDate,
+    classCode,
+    quotaCode: process.env.RAILRADAR_QUOTA || 'GN'
+  });
+  const payload = await request(`/v1/trains/${encodeURIComponent(segment.trainNo)}/seats?${params.toString()}`);
+  const data = payload?.data || {};
+  const row = (data.calendar || []).find(item => String(item.date || item.rawDate) === journeyDate);
+  if (!row) return { status: 'UNVERIFIED', reason: 'RailRadar did not return availability for the requested journey date.', fetchedAt: payload?.meta?.timestamp || null };
+  const providerStatus = String(row.statusCode || row.status || 'UNKNOWN').toUpperCase();
+  return {
+    status: providerStatus,
+    availabilityText: row.status || providerStatus,
+    availableCount: Number.isFinite(Number(row.availableSeats)) ? Number(row.availableSeats) : null,
+    waitlistNumber: Number.isFinite(Number(row.waitlistNumber)) ? Number(row.waitlistNumber) : null,
+    waitlistType: row.waitlistType || null,
+    isAvailable: row.isAvailable === true || providerStatus === 'AVAILABLE',
+    fetchedAt: payload?.meta?.timestamp || null,
+    source: payload?.meta?.source || 'RailRadar external aggregation'
+  };
+}
+
+async function addRailRadarAvailability(routes, date, travelClass) {
+  const checks = [];
+  for (let routeIndex = 0; routeIndex < routes.length; routeIndex++) {
+    const route = routes[routeIndex];
+    const sets = route.segments.map(segment => new Set(segment.classes || []));
+    const common = [...(sets[0] || [])].filter(cls => sets.every(set => set.has(cls)));
+    const classes = common.filter(cls => travelClass === 'ALL' || cls === travelClass);
+    for (const cls of classes) checks.push({ routeIndex, cls });
+  }
+
+  // Keep the serverless request bounded. Unchecked combinations are explicitly
+  // labelled, never inferred as unavailable or confirmed.
+  const maxChecks = Math.max(1, Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)));
+  const selected = checks.slice(0, maxChecks);
+  const byRoute = routes.map(() => []);
+  let cursor = 0;
+  const workers = Array.from({ length: 4 }, async () => {
+    while (cursor < selected.length) {
+      const check = selected[cursor++];
+      const route = routes[check.routeIndex];
+      const legs = await Promise.all(route.segments.map(segment =>
+        checkSeatAvailability(segment, date, check.cls).catch(error => ({
+          status: 'ERROR',
+          reason: error?.message || 'RailRadar seat availability request failed.',
+          fetchedAt: null
+        }))
+      ));
+      const timestamps = legs.map(item => item.fetchedAt).filter(Boolean);
+      const newest = timestamps.length ? timestamps.map(Date.parse).filter(Number.isFinite).sort((a,b)=>b-a)[0] : NaN;
+      const ageMinutes = Number.isFinite(newest) ? Math.max(0, (Date.now() - newest) / 60000) : null;
+      const freshness = ageMinutes == null ? 'UNKNOWN' : ageMinutes > 15 ? 'STALE' : 'FRESH';
+      const allAvailable = legs.length === route.segments.length && legs.every(item => item.isAvailable === true);
+      const hasError = legs.some(item => item.status === 'ERROR');
+      const result = allAvailable && freshness === 'FRESH'
+        ? [{
+            segments: legs.map(item => ({ status: 'CONFIRMED' })),
+            availabilityText: legs.map(item => item.availabilityText).join(' + '),
+            availableCount: legs.length === 1 ? legs[0].availableCount : null,
+            fare: null
+          }]
+        : [];
+      const reasons = legs.map((item, i) => `${route.segments[i].trainNo}: ${item.reason || item.availabilityText || item.status}`);
+      byRoute[check.routeIndex].push({
+        class: check.cls,
+        status: hasError ? 'ERROR' : 'OK',
+        results: result,
+        providerStatus: allAvailable ? 'AVAILABLE' : legs.map(item => item.status).join(' / '),
+        freshness,
+        freshnessAgeMinutes: ageMinutes == null ? null : Math.ceil(ageMinutes),
+        freshnessThresholdMinutes: 15,
+        fetchedAt: timestamps.sort().at(-1) || null,
+        source: 'RailRadar',
+        reason: result.length ? null : (freshness !== 'FRESH'
+          ? 'Availability timestamp is missing or older than 15 minutes; not treated as confirmed.'
+          : reasons.join('; '))
+      });
+    }
+  });
+  await Promise.all(workers);
+
+  return routes.map((route, index) => {
+    const checked = byRoute[index];
+    const sets = route.segments.map(segment => new Set(segment.classes || []));
+    const common = [...(sets[0] || [])].filter(cls => sets.every(set => set.has(cls)) && (travelClass === 'ALL' || cls === travelClass));
+    const checkedClasses = new Set(checked.map(item => item.class));
+    for (const cls of common) {
+      if (!checkedClasses.has(cls)) checked.push({
+        class: cls,
+        status: 'UNAVAILABLE',
+        results: [],
+        reason: `Not checked in this search to respect the configured request budget (limit ${maxChecks}).`
+      });
+    }
+    return { ...route, availability: checked };
+  });
+}
+
 export async function searchRailRadarJourney(fromInput, toInput, date, travelClass = 'ALL', routeType = 'ALL') {
   const [from, to] = await Promise.all([resolveStation(fromInput), resolveStation(toInput)]);
   if (from.code === to.code) throw new Error('Origin and destination must be different stations.');
@@ -129,23 +232,18 @@ export async function searchRailRadarJourney(fromInput, toInput, date, travelCla
     const key = route.segments.map(s => `${s.trainNo}:${s.from}:${s.to}:${s.departureTime}`).join('|');
     if (seen.has(key)) return false;
     seen.add(key);
-    route.availability = common.filter(cls => travelClass === 'ALL' || cls === travelClass).map(cls => ({
-      class: cls,
-      status: 'UNAVAILABLE',
-      results: [],
-      reason: 'RailRadar supplies timetable and route data, not live seat availability. Configure a separately authorised availability provider to verify seats.'
-    }));
     return true;
   });
+  const routesWithAvailability = await addRailRadarAvailability(routes, date, travelClass);
   return {
     from: from.code,
     to: to.code,
-    results: routes,
+    results: routesWithAvailability,
     source: 'RailRadar',
     providerCheckedAt: payload?.meta?.timestamp || new Date().toISOString(),
-    availabilityChecked: 0,
-    availabilityCreditsRequested: 0,
-    availabilityLimit: routes.length,
+    availabilityChecked: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
+    availabilityCreditsRequested: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
+    availabilityLimit: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
     sourceNote: 'RailRadar is an independent third-party timetable and route-data provider, not Indian Railways or IRCTC. Its route planner supplies direct and connecting train schedules, but this response does not confirm live seat availability. Seats remain unverified unless a separate authorised availability provider confirms them.'
   };
 }
