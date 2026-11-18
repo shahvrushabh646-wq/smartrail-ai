@@ -12,3 +12,5 @@
 @media(max-width:430px){.fields{grid-template-columns:1fr}.swap{grid-column:auto;transform:rotate(90deg)}}
 
 .classrow span small{display:block;margin-top:4px;color:#8a98aa;font-size:10px;font-weight:400}
+
+.classrow span.notavailable{color:#a45b17!important;font-weight:700}.classrow span.stale{color:#b42318!important;font-weight:700}.classrow span.confirmed{color:#16804a!important;font-weight:700}.classrow span small{font-weight:400}
