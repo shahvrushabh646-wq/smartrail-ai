@@ -117,6 +117,18 @@ function normaliseTrain(train) {
   };
 }
 
+function indiaClock() {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    minutes: Number(values.hour) * 60 + Number(values.minute)
+  };
+}
+
 async function freshAvailability(trains, date, travelClass) {
   const limit = Math.max(1, Math.min(10, Number(process.env.RAILCORE_AVAILABILITY_LIMIT || 3)));
   const checked = trains.slice(0, limit);
@@ -134,7 +146,7 @@ async function freshAvailability(trains, date, travelClass) {
     };
   }).filter(item => item.classes.length);
 
-  if (!items.length) return { byTrain: new Map(), checkedCount: 0, creditsRequested: 0, limit };
+  if (!items.length) return { byTrain: new Map(), checkedCount: 0, creditsRequested: 0, limit, checkedTrainNumbers: new Set() };
   const payload = await request('/availability/seats/batch', {
     method: 'POST',
     body: JSON.stringify({ items })
@@ -146,7 +158,7 @@ async function freshAvailability(trains, date, travelClass) {
     const classes = new Map((row.classes || []).map(item => [String(item.class_code).toUpperCase(), item]));
     byTrain.set(key, classes);
   }
-  return { byTrain, checkedCount: items.length, creditsRequested: items.reduce((sum, item) => sum + item.classes.length, 0), limit };
+  return { byTrain, checkedCount: items.length, creditsRequested: items.reduce((sum, item) => sum + item.classes.length, 0), limit, checkedTrainNumbers: new Set(items.map(item => String(item.train_number))) };
 }
 
 export async function searchRailCoreJourney(fromInput, toInput, date, travelClass = 'ALL') {
@@ -156,10 +168,19 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
   const query = new URLSearchParams({ from, to, date, match: 'station' });
   const payload = await request(`/routes/trains?${query.toString()}`);
   const rawTrains = payload?.data?.trains || payload?.trains || [];
-  const trains = rawTrains.map(normaliseTrain).filter(train =>
+  const allTrains = rawTrains.map(normaliseTrain).filter(train =>
     train.trainNo && train.from && train.to && train.departureMinutes != null &&
     train.arrivalMinutes != null && train.classes.length
   );
+  const now = indiaClock();
+  // The provider returns a full-day timetable. On today's journey date, hide
+  // departures that have already left before selecting live availability checks.
+  const departedCount = date === now.date
+    ? allTrains.filter(train => train.departureMinutes <= now.minutes).length
+    : 0;
+  const trains = date === now.date
+    ? allTrains.filter(train => train.departureMinutes > now.minutes)
+    : allTrains;
 
   const availability = await freshAvailability(trains, date, travelClass);
   const results = trains.map((train, index) => {
@@ -173,7 +194,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
         return {
           class: cls,
           status: 'UNAVAILABLE',
-          reason: index >= availability.limit
+          reason: !availability.checkedTrainNumbers.has(train.trainNo)
             ? 'Live check not run for this result to protect the provider request limit.'
             : 'Live availability was not returned by the provider.'
         };
@@ -212,7 +233,8 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     availabilityChecked: availability.checkedCount,
     availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
-    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. Fresh availability was requested for the top ${availability.limit} direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Source timestamps are shown where available. Recheck before booking.`
+    departedFiltered: departedCount,
+    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. ${departedCount} train(s) already departed in India time were excluded for this same-day search. Fresh availability was requested for the next ${availability.limit} upcoming direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Source timestamps are shown where available. Recheck before booking.`
   };
 }
 
