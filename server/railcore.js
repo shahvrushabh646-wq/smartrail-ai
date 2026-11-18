@@ -116,7 +116,7 @@ async function freshAvailability(trains, date, travelClass) {
     };
   }).filter(item => item.classes.length);
 
-  if (!items.length) return { byTrain: new Map(), checkedCount: 0, limit };
+  if (!items.length) return { byTrain: new Map(), checkedCount: 0, creditsRequested: 0, limit };
   const payload = await request('/availability/seats/batch', {
     method: 'POST',
     body: JSON.stringify({ items })
@@ -128,7 +128,7 @@ async function freshAvailability(trains, date, travelClass) {
     const classes = new Map((row.classes || []).map(item => [String(item.class_code).toUpperCase(), item]));
     byTrain.set(key, classes);
   }
-  return { byTrain, checkedCount: items.length, limit };
+  return { byTrain, checkedCount: items.length, creditsRequested: items.reduce((sum, item) => sum + item.classes.length, 0), limit };
 }
 
 export async function searchRailCoreJourney(fromInput, toInput, date, travelClass = 'ALL') {
@@ -166,7 +166,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
         class: cls,
         status: 'OK',
         results: confirmed ? [{
-          segments: [{ status: 'CONFIRMED' }],
+          segments: [{ status: 'AVAILABLE' }],
           fare: live.total_fare ?? live.fare ?? null,
           availableCount: live.available_count ?? null,
           availabilityText: live.availability_text || status
@@ -192,6 +192,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     source: 'RailCore',
     providerCheckedAt: payload?.meta?.timestamp || new Date().toISOString(),
     availabilityChecked: availability.checkedCount,
+    availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
     sourceNote: 'Train schedules and checked seat availability are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. Availability is time-sensitive; recheck before booking.'
   };
