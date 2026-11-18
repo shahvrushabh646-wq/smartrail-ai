@@ -119,9 +119,19 @@ function App() {
                 {route.availability.map(item => (
                   <div className="classrow" key={item.class}>
                     <b>{item.class}</b>
-                    <span className={item.status === 'OK' && item.results?.length ? 'confirmed' : ''}>
-                      {item.status === "OK" ? item.results?.length ? (item.results[0].availabilityText || "AVAILABLE") + (item.results[0].availableCount != null ? " · " + item.results[0].availableCount + " seats" : "") + (item.results[0].fare != null ? " · ₹" + item.results[0].fare : "") : (item.reason || item.providerStatus || "No confirmed seats") : item.reason || "Live availability unavailable"}
-                      {item.fetchedAt && <small>Source timestamp: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
+                    <span className={item.results?.length ? 'confirmed' : item.freshness === 'STALE' || item.freshness === 'UNKNOWN' ? 'stale' : 'notavailable'}>
+                      {item.results?.length
+                        ? (item.results[0].availabilityText || "AVAILABLE") + (item.results[0].availableCount != null ? " · " + item.results[0].availableCount + " seats" : "") + (item.results[0].fare != null ? " · ₹" + item.results[0].fare : "")
+                        : item.freshness === 'STALE'
+                          ? "STALE · " + (item.reason || item.providerStatus || "Recheck required")
+                          : item.freshness === 'UNKNOWN'
+                            ? "UNVERIFIED · " + (item.reason || "Timestamp unavailable")
+                            : item.status === "OK"
+                              ? (item.reason || item.providerStatus || "Not available")
+                              : (item.reason || "Live availability not checked")}
+                      {item.providerStatus && <small>Provider status: {item.providerStatus}</small>}
+                      {item.fetchedAt && <small>Last provider update: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
+                      {item.freshnessAgeMinutes != null && <small>Data age: {item.freshnessAgeMinutes} min · {item.freshness}</small>}
                     </span>
                   </div>
                 ))}
