@@ -114,7 +114,7 @@ function App() {
             : data.results.map((route, index) => (
               <article className="result" key={index}>
                 <div className="route"><b>{route.segments[0].fromName || route.segments[0].from} → {route.segments[route.segments.length - 1].toName || route.segments[route.segments.length - 1].to}</b><span>{route.segments.length === 1 ? 'DIRECT' : `VIA ${route.via}`}</span></div>
-                <p>{route.segments.map(segment => (segment.trainNo || "Train") + " " + (segment.name || "") + " · " + (segment.fromName || segment.from) + " " + (segment.departureTime || "") + " → " + (segment.toName || segment.to) + " " + (segment.arrivalTime || "")).join("  +  ")}</p>
+                <p className="train-summary">{route.segments.map(segment => (segment.trainNo || "Train") + " " + (segment.name || "") + " · " + (segment.fromName || segment.from) + " " + (segment.departureTime || "") + " → " + (segment.toName || segment.to) + " " + (segment.arrivalTime || "")).join("  +  ")}</p>
                 {route.interchangeMinutes != null && <small className="buffer">Connection buffer: {Math.floor(route.interchangeMinutes / 60)}h {route.interchangeMinutes % 60}m</small>}
                 {route.availability.length === 0 && <div className="classrow"><b>No common class</b><span>Not offered on every leg</span></div>}
                 {route.availability.map(item => (
