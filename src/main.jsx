@@ -135,7 +135,7 @@ function App() {
                       {item.reason && (item.freshness === 'STALE' || item.freshness === 'UNKNOWN' || item.status !== 'OK') && <small>{item.reason}</small>}
                       {item.providerStatus && <small>Provider status: {item.providerStatus}</small>}
                       {item.fetchedAt && <small>Last provider update: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
-                      {item.freshnessAgeMinutes != null && <small>Data age: {item.freshnessAgeMinutes} min · within 15-min display threshold</small>}
+                      {item.freshnessAgeMinutes != null && <small>{item.freshness === 'STALE' ? `Data age: ${item.freshnessAgeMinutes} min · exceeds ${item.freshnessThresholdMinutes || 15}-min freshness limit` : `Data age: ${item.freshnessAgeMinutes} min · within ${item.freshnessThresholdMinutes || 15}-min freshness limit`}</small>}
                     </span>
                   </div>
                 ))}
