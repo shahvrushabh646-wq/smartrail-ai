@@ -194,7 +194,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     availabilityChecked: availability.checkedCount,
     availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
-    sourceNote: 'Train schedules and checked seat availability are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. Availability is time-sensitive; recheck before booking.'
+    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. Fresh availability was requested for the top ${availability.limit} direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Source timestamps are shown where available. Recheck before booking.`
   };
 }
 
