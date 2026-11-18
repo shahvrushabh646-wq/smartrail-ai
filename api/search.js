@@ -96,36 +96,42 @@ export default async function handler(req, res) {
 
     const all = await readTimetable();
 
+    let railCoreFailure = null;
     if (isRailCoreConfigured()) {
-      const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
-      const localConnections = findConnections(all, remote.from, remote.to);
-      const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
-      const results = routeType === 'DIRECT'
-        ? remote.results
-        : routeType === 'VIA'
-          ? connectionResults
-          : [...remote.results, ...connectionResults];
-      results.sort((a, b) => {
-        if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
-        return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
-      });
-      return res.status(200).json({
-        from: remote.from,
-        to: remote.to,
-        date,
-        results,
-        timetableRecords: all.length,
-        source: remote.source,
-        providerCheckedAt: remote.providerCheckedAt,
-        availabilityChecked: remote.availabilityChecked,
-        availabilityLimit: remote.availabilityLimit,
-        availabilityCreditsRequested: remote.availabilityCreditsRequested,
-        routeType,
-        sourceNote: all.length
-          ? `${remote.sourceNote} Via-station routes are calculated from the separately imported timetable and use a separate authorised availability provider. Verify the timetable's source and update date.`
-          : `${remote.sourceNote} Direct trains are available through this provider. Via-station option is enabled, but no verified timetable is imported yet, so no connecting trains can be displayed.`,
-        generatedAt: new Date().toISOString()
-      });
+      try {
+        const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
+        const localConnections = findConnections(all, remote.from, remote.to);
+        const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
+        const results = routeType === 'DIRECT'
+          ? remote.results
+          : routeType === 'VIA'
+            ? connectionResults
+            : [...remote.results, ...connectionResults];
+        results.sort((a, b) => {
+          if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
+          return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
+        });
+        return res.status(200).json({
+          from: remote.from,
+          to: remote.to,
+          date,
+          results,
+          timetableRecords: all.length,
+          source: remote.source,
+          providerCheckedAt: remote.providerCheckedAt,
+          availabilityChecked: remote.availabilityChecked,
+          availabilityLimit: remote.availabilityLimit,
+          availabilityCreditsRequested: remote.availabilityCreditsRequested,
+          routeType,
+          sourceNote: all.length
+            ? `${remote.sourceNote} Via-station routes are calculated from the separately imported timetable and use a separate authorised availability provider. Verify the timetable's source and update date.`
+            : `${remote.sourceNote} Direct trains are available through this provider. Via-station option is enabled, but no verified timetable is imported yet, so no connecting trains can be displayed.`,
+          generatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        if (!all.length) throw error;
+        railCoreFailure = error?.message || 'RailCore is temporarily unavailable.';
+      }
     }
 
     if (!all.length) {
@@ -158,7 +164,11 @@ export default async function handler(req, res) {
       results,
       routeType,
       timetableRecords: all.length,
-      sourceNote: 'Routes are based on the locally imported timetable. Seat availability is shown only when a separate authorised provider confirms every leg.',
+      source: railCoreFailure ? 'Imported timetable fallback' : 'Imported timetable',
+      providerError: railCoreFailure,
+      sourceNote: railCoreFailure
+        ? `RailCore could not complete this search (${railCoreFailure}). SmartRail used the locally imported timetable as a fallback. Seat availability is shown only when the separately configured authorised availability provider confirms every leg. This fallback is only as current as the imported timetable; verify its source and update date.`
+        : 'Routes are based on the locally imported timetable. Seat availability is shown only when a separate authorised provider confirms every leg.',
       generatedAt: new Date().toISOString()
     });
   } catch (error) {
