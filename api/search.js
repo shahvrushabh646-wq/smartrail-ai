@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getLiveAvailability } from '../server/provider.js';
 import { isRailCoreConfigured, searchRailCoreJourney } from '../server/railcore.js';
+import { isRailRadarConfigured, searchRailRadarJourney } from '../server/railradar.js';
 
 async function readTimetable() {
   const file = path.join(process.cwd(), 'server', 'data', 'timetable.json');
@@ -129,8 +130,43 @@ export default async function handler(req, res) {
           generatedAt: new Date().toISOString()
         });
       } catch (error) {
-        if (!all.length) throw error;
         railCoreFailure = error?.message || 'RailCore is temporarily unavailable.';
+      }
+    }
+
+    // Independent timetable/connection provider used when RailCore is unavailable
+    // or not configured. It never represents timetable data as live seat availability.
+    if (railCoreFailure || !isRailCoreConfigured()) {
+      if (isRailRadarConfigured()) {
+        try {
+          const backup = await searchRailRadarJourney(fromInput, toInput, date, travelClass, routeType);
+          return res.status(200).json({
+            from: backup.from,
+            to: backup.to,
+            date,
+            results: backup.results,
+            timetableRecords: all.length,
+            source: backup.source,
+            providerCheckedAt: backup.providerCheckedAt,
+            availabilityChecked: backup.availabilityChecked,
+            availabilityLimit: backup.availabilityLimit,
+            availabilityCreditsRequested: backup.availabilityCreditsRequested,
+            routeType,
+            providerError: railCoreFailure,
+            sourceNote: railCoreFailure
+              ? `RailCore fallback activated: ${railCoreFailure} RailRadar supplied the alternate timetable and connecting-route results. ${backup.sourceNote}`
+              : backup.sourceNote,
+            generatedAt: new Date().toISOString()
+          });
+        } catch (backupError) {
+          if (!all.length) {
+            return res.status(502).json({
+              error: 'Both primary and backup train-data providers failed.',
+              detail: `RailCore: ${railCoreFailure || 'not configured'}. RailRadar: ${backupError?.message || 'unavailable'}`,
+              sourceNote: 'No trains or seat counts have been invented.'
+            });
+          }
+        }
       }
     }
 
