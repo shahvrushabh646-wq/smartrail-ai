@@ -99,7 +99,7 @@ function App() {
       <section className="results">
         <div className="sectionhead">
           <div><p className="eyebrow">YOUR OPTIONS</p><h2>Journey results</h2></div>
-          <span className="pill">{data?.source === "RailCore" ? "Live train data · independent provider" : "Confirmed-only split routes"}</span>
+          <span className="pill">{data?.source === "RailCore" ? "Live direct trains · independent provider" : "Direct + via-station journey planner"}</span>
         </div>
 
         {error && <div className="error" role="alert"><b>Search could not be completed</b><span>{error}</span></div>}
@@ -117,8 +117,9 @@ function App() {
                 {route.availability.map(item => (
                   <div className="classrow" key={item.class}>
                     <b>{item.class}</b>
-                    <span className={item.status === 'OK' && item.results.length ? 'confirmed' : ''}>
+                    <span className={item.status === 'OK' && item.results?.length ? 'confirmed' : ''}>
                       {item.status === "OK" ? item.results?.length ? (item.results[0].availabilityText || "AVAILABLE") + (item.results[0].availableCount != null ? " · " + item.results[0].availableCount + " seats" : "") + (item.results[0].fare != null ? " · ₹" + item.results[0].fare : "") : (item.reason || item.providerStatus || "No confirmed seats") : item.reason || "Live availability unavailable"}
+                      {item.fetchedAt && <small>Checked: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
                     </span>
                   </div>
                 ))}
