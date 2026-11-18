@@ -200,7 +200,18 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
         };
       }
       const status = String(live.status || 'UNKNOWN').toUpperCase();
-      const confirmed = status === 'AVAILABLE';
+      const fetchedAt = live.last_updated_at || null;
+      const fetchedMs = fetchedAt ? Date.parse(fetchedAt) : NaN;
+      const ageMinutes = Number.isFinite(fetchedMs)
+        ? Math.max(0, (Date.now() - fetchedMs) / 60000)
+        : null;
+      const staleAfterMinutes = Math.max(1, Math.min(60, Number(process.env.RAILCORE_FRESHNESS_MINUTES || 15)));
+      const freshness = ageMinutes == null ? 'UNKNOWN' : ageMinutes > staleAfterMinutes ? 'STALE' : 'FRESH';
+      const confirmed = status === 'AVAILABLE' && freshness === 'FRESH';
+      let reason = null;
+      if (freshness === 'UNKNOWN') reason = 'Provider did not supply a valid class-level update timestamp; availability is unverified.';
+      else if (freshness === 'STALE') reason = `Stale provider update (${Math.floor(ageMinutes)} minutes old). Last reported: ${live.availability_text || status}. Recheck before booking.`;
+      else if (status !== 'AVAILABLE') reason = live.availability_text || status;
       return {
         class: cls,
         status: 'OK',
@@ -210,9 +221,11 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
           availableCount: live.available_count ?? null,
           availabilityText: live.availability_text || status
         }] : [],
-        reason: confirmed ? null : (live.availability_text || status),
+        reason,
         providerStatus: status,
-        fetchedAt: live.last_updated_at || payload?.meta?.timestamp || new Date().toISOString(),
+        freshness,
+        freshnessAgeMinutes: ageMinutes == null ? null : Math.floor(ageMinutes),
+        fetchedAt,
         source: 'RailCore'
       };
     });
@@ -234,7 +247,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
     departedFiltered: departedCount,
-    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. ${departedCount} train(s) already departed in India time were excluded for this same-day search. Fresh availability was requested for the next ${availability.limit} upcoming direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Source timestamps are shown where available. Recheck before booking.`
+    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. ${departedCount} train(s) already departed in India time were excluded for this same-day search. Fresh availability was requested for the next ${availability.limit} upcoming direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Class-level availability is treated as confirmed only when its own provider timestamp is valid and no older than ${Math.max(1, Math.min(60, Number(process.env.RAILCORE_FRESHNESS_MINUTES || 15)))} minutes. Missing or older timestamps are shown as unverified/stale, never as confirmed. Recheck before booking.`
   };
 }
 
