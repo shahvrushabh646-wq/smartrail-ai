@@ -294,7 +294,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
     departedFiltered: departedCount,
-undefined
+    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. ${departedCount} train(s) already departed in India time were excluded for this same-day search. Live availability was requested for every upcoming direct train and every class offered by that train. The provider accepts up to 25 train items and 8 classes per item, so larger searches are split into batches. This search requested approximately ${availability.creditsRequested} train/class checks; successful checks consume the provider account's credits and rate-limit budget. Class-level availability is treated as confirmed only when its own provider timestamp is valid and no older than ${Math.max(1, Math.min(60, Number(process.env.RAILCORE_FRESHNESS_MINUTES || 15)))} minutes. Missing or older timestamps are shown as unverified/stale, never as confirmed. Recheck before booking.`
   };
 }
 
