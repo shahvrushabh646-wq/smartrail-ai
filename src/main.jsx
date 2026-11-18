@@ -12,6 +12,7 @@ function App() {
   const [to, setTo] = useState('');
   const [date, setDate] = useState(today);
   const [travelClass, setTravelClass] = useState('ALL');
+  const [routeType, setRouteType] = useState('ALL');
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +44,7 @@ function App() {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ from, to, date, travelClass })
+        body: JSON.stringify({ from, to, date, travelClass, routeType })
       });
       const raw = await response.text();
       let payload;
@@ -75,7 +76,7 @@ function App() {
       <section className="hero">
         <p className="eyebrow">A SMARTER WAY TO TRAVEL</p>
         <h1>Your journey,<br /><em>intelligently connected.</em></h1>
-        <p className="sub">Compare direct trains and practical connecting routes in one search.</p>
+        <p className="sub">Compare direct trains and connecting routes via an interchange station.</p>
         <form onSubmit={search}>
           <div className="fields">
             <label>FROM
@@ -94,6 +95,13 @@ function App() {
                 {CLASSES.map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
+            <label>JOURNEY TYPE
+              <select value={routeType} onChange={e => setRouteType(e.target.value)}>
+                <option value="ALL">Direct + Via</option>
+                <option value="DIRECT">Direct trains only</option>
+                <option value="VIA">Via station only</option>
+              </select>
+            </label>
           </div>
           <button className="search-button" disabled={busy || apiStatus === 'offline'}>{busy ? 'SEARCHING…' : 'Search trains →'}</button>
         </form>
@@ -106,7 +114,7 @@ function App() {
         </div>
 
         {error && <div className="error" role="alert"><b>Search could not be completed</b><span>{error}</span></div>}
-        {!data && !error && <div className="empty">Enter your journey details to search direct and via-station routes.</div>}
+        {!data && !error && <div className="empty">Choose Direct + Via, Direct only, or Via station only, then enter your journey details.</div>}
         {data && <>
           <div className="notice">{data.sourceNote}</div>
           {data.results.length === 0
