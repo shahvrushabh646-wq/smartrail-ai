@@ -130,9 +130,9 @@ function indiaClock() {
 }
 
 async function freshAvailability(trains, date, travelClass) {
-  const limit = Math.max(1, Math.min(10, Number(process.env.RAILCORE_AVAILABILITY_LIMIT || 3)));
-  const checked = trains.slice(0, limit);
-  const items = checked.map(train => {
+  // RailCore accepts at most 25 train items per batch. Check every timetable
+  // result in batches; each requested train/class combination consumes credits.
+  const items = trains.map(train => {
     const classes = travelClass === 'ALL'
       ? train.classes.slice(0, 8)
       : train.classes.includes(travelClass) ? [travelClass] : [];
@@ -146,19 +146,50 @@ async function freshAvailability(trains, date, travelClass) {
     };
   }).filter(item => item.classes.length);
 
-  if (!items.length) return { byTrain: new Map(), checkedCount: 0, creditsRequested: 0, limit, checkedTrainNumbers: new Set() };
-  const payload = await request('/availability/seats/batch', {
-    method: 'POST',
-    body: JSON.stringify({ items })
-  });
-  const rows = payload?.data?.results || payload?.results || [];
   const byTrain = new Map();
-  for (const row of rows) {
-    const key = String(row.train_number || '');
-    const classes = new Map((row.classes || []).map(item => [String(item.class_code).toUpperCase(), item]));
-    byTrain.set(key, classes);
+  const checkedTrainNumbers = new Set();
+  const attemptedTrainNumbers = new Set(items.map(item => String(item.train_number)));
+  const failedTrainNumbers = new Map();
+  let checkedCount = 0;
+  let creditsRequested = 0;
+
+  for (let offset = 0; offset < items.length; offset += 25) {
+    const batch = items.slice(offset, offset + 25);
+    creditsRequested += batch.reduce((sum, item) => sum + item.classes.length, 0);
+    try {
+      const payload = await request('/availability/seats/batch', {
+        method: 'POST',
+        body: JSON.stringify({ items: batch })
+      });
+      const rows = payload?.data?.results || payload?.results || [];
+      for (const row of rows) {
+        const key = String(row.train_number || '');
+        if (!key) continue;
+        const classes = new Map((row.classes || []).map(item => [String(item.class_code).trim().toUpperCase(), item]));
+        byTrain.set(key, classes);
+        checkedTrainNumbers.add(key);
+        checkedCount += 1;
+      }
+      // A successful batch can still omit an individual train response.
+      for (const item of batch) {
+        const key = String(item.train_number);
+        if (!byTrain.has(key)) failedTrainNumbers.set(key, 'Provider did not return an availability result for this train.');
+      }
+    } catch (error) {
+      const reason = error?.message || 'Availability provider request failed.';
+      for (const item of batch) failedTrainNumbers.set(String(item.train_number), reason);
+    }
   }
-  return { byTrain, checkedCount: items.length, creditsRequested: items.reduce((sum, item) => sum + item.classes.length, 0), limit, checkedTrainNumbers: new Set(items.map(item => String(item.train_number))) };
+
+  return {
+    byTrain,
+    checkedCount,
+    creditsRequested,
+    limit: trains.length,
+    checkedTrainNumbers,
+    attemptedTrainNumbers,
+    failedTrainNumbers
+  };
 }
 
 export async function searchRailCoreJourney(fromInput, toInput, date, travelClass = 'ALL') {
@@ -193,10 +224,11 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
       if (!live) {
         return {
           class: cls,
-          status: 'UNAVAILABLE',
-          reason: !availability.checkedTrainNumbers.has(train.trainNo)
-            ? 'Live check not run for this result to protect the provider request limit.'
-            : 'Live availability was not returned by the provider.'
+          status: availability.failedTrainNumbers.has(train.trainNo) ? 'ERROR' : 'UNAVAILABLE',
+          reason: availability.failedTrainNumbers.get(train.trainNo) ||
+            (availability.attemptedTrainNumbers.has(train.trainNo)
+              ? 'Live availability was not returned by the provider.'
+              : 'No live availability request was made for this class.')
         };
       }
       const status = String(live.status || 'UNKNOWN').toUpperCase();
@@ -249,7 +281,7 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
     availabilityCreditsRequested: availability.creditsRequested,
     availabilityLimit: availability.limit,
     departedFiltered: departedCount,
-    sourceNote: `Train schedules and seat-availability responses are supplied by RailCore, an independent third-party provider, not Indian Railways or IRCTC. ${departedCount} train(s) already departed in India time were excluded for this same-day search. Fresh availability was requested for the next ${availability.limit} upcoming direct trains only (estimated ${availability.creditsRequested} class checks); remaining trains are not live-checked. Class-level availability is treated as confirmed only when its own provider timestamp is valid and no older than ${Math.max(1, Math.min(60, Number(process.env.RAILCORE_FRESHNESS_MINUTES || 15)))} minutes. Missing or older timestamps are shown as unverified/stale, never as confirmed. Recheck before booking.`
+undefined
   };
 }
 
