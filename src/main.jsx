@@ -121,7 +121,7 @@ function App() {
                     <b>{item.class}</b>
                     <span className={item.status === 'OK' && item.results?.length ? 'confirmed' : ''}>
                       {item.status === "OK" ? item.results?.length ? (item.results[0].availabilityText || "AVAILABLE") + (item.results[0].availableCount != null ? " · " + item.results[0].availableCount + " seats" : "") + (item.results[0].fare != null ? " · ₹" + item.results[0].fare : "") : (item.reason || item.providerStatus || "No confirmed seats") : item.reason || "Live availability unavailable"}
-                      {item.fetchedAt && <small>Checked: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
+                      {item.fetchedAt && <small>Source timestamp: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
                     </span>
                   </div>
                 ))}
