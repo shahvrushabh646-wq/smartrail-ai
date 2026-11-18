@@ -71,3 +71,14 @@ For a split journey, `segments` must contain one status per leg, in route order.
 - Live provider adapter requires a real authorised provider. Hosting, database and provider quotas may have costs even if the app code is free.
 - Add provider-specific schema validation, rate limiting, caching, monitoring, audit logs and security before public launch.
 - This is a route-search prototype, not a guarantee of railway availability or journey protection.
+
+## Deploy to Vercel
+
+1. Import `shahvrushabh646-wq/smartrail-ai` into Vercel.
+2. Keep the project root directory as `./`.
+3. Use the Vite framework preset, build command `npm run build`, and output directory `dist`.
+4. Deploy the latest commit on `main`.
+5. Test `/api/health` in the deployed domain; it should return JSON with `ok: true`.
+6. Test `POST /api/search` with JSON containing `from`, `to`, `date`, and optional `travelClass`.
+
+The Vercel function configuration explicitly includes `server/data/timetable.json` in the search function bundle. Do not add fake sample train records to make the search look populated. Until a verified timetable feed and an authorised availability provider are configured, the app will correctly report that no route dataset/live availability is available.
