@@ -50,7 +50,7 @@ function App() {
         const hint = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
         throw new Error(`Search API returned a non-JSON response (HTTP ${response.status}). ${hint || 'Check the Vercel deployment.'}`);
       }
-      if (!response.ok) throw new Error(payload.error || `Search failed (HTTP ${response.status}).`);
+      if (!response.ok) throw new Error(payload.detail ? `${payload.error || 'Search failed.'} ${payload.detail}` : (payload.error || `Search failed (HTTP ${response.status}).`));
       setData(payload);
     } catch (exception) {
       setError(exception.message || 'Unable to search right now.');
@@ -76,7 +76,7 @@ function App() {
         <form onSubmit={search}>
           <div className="fields">
             <label>FROM
-              <input value={from} onChange={e => setFrom(e.target.value)} placeholder="Station name or code" autoComplete="off" required />
+              <input value={from} onChange={e => setFrom(e.target.value)} placeholder="e.g. PUNE or Pune Junction" autoComplete="off" required />
             </label>
             <button className="swap" type="button" onClick={swapStations} aria-label="Swap stations" title="Swap stations">⇄</button>
             <label>TO
@@ -99,7 +99,7 @@ function App() {
       <section className="results">
         <div className="sectionhead">
           <div><p className="eyebrow">YOUR OPTIONS</p><h2>Journey results</h2></div>
-          <span className="pill">Confirmed-only split routes</span>
+          <span className="pill">{data?.source === "RailCore" ? "Live train data · independent provider" : "Confirmed-only split routes"}</span>
         </div>
 
         {error && <div className="error" role="alert"><b>Search could not be completed</b><span>{error}</span></div>}
@@ -107,18 +107,18 @@ function App() {
         {data && <>
           <div className="notice">{data.sourceNote}</div>
           {data.results.length === 0
-            ? <div className="empty"><b>No matching routes found.</b><span>{data.timetableRecords === 0 ? 'The app is running, but a verified timetable feed has not been added yet.' : 'Try another station name or station code.'}</span></div>
+            ? <div className="empty"><b>No matching routes found.</b><span>{data.timetableRecords === 0 && !data.source ? "Connect a train-data provider to enable live journey search." : "No train matched this station pair on the selected date. Try station codes or another date."}</span></div>
             : data.results.map((route, index) => (
               <article className="result" key={index}>
-                <div className="route"><b>{route.segments[0].from} → {route.segments[route.segments.length - 1].to}</b><span>{route.segments.length === 1 ? 'DIRECT' : `VIA ${route.via}`}</span></div>
-                <p>{route.segments.map(segment => `${segment.trainNo || 'Train'} ${segment.name || ''} (${segment.from}–${segment.to})`).join('  +  ')}</p>
+                <div className="route"><b>{route.segments[0].fromName || route.segments[0].from} → {route.segments[route.segments.length - 1].toName || route.segments[route.segments.length - 1].to}</b><span>{route.segments.length === 1 ? 'DIRECT' : `VIA ${route.via}`}</span></div>
+                <p>{route.segments.map(segment => (segment.trainNo || "Train") + " " + (segment.name || "") + " · " + (segment.fromName || segment.from) + " " + (segment.departureTime || "") + " → " + (segment.toName || segment.to) + " " + (segment.arrivalTime || "")).join("  +  ")}</p>
                 {route.interchangeMinutes != null && <small className="buffer">Connection buffer: {Math.floor(route.interchangeMinutes / 60)}h {route.interchangeMinutes % 60}m</small>}
                 {route.availability.length === 0 && <div className="classrow"><b>No common class</b><span>Not offered on every leg</span></div>}
                 {route.availability.map(item => (
                   <div className="classrow" key={item.class}>
                     <b>{item.class}</b>
                     <span className={item.status === 'OK' && item.results.length ? 'confirmed' : ''}>
-                      {item.status === 'OK' ? item.results.length ? `${item.results.length} confirmed option(s)` : 'No fully confirmed option' : item.reason || 'Live availability unavailable'}
+                      {item.status === "OK" ? item.results?.length ? (item.results[0].availabilityText || "AVAILABLE") + (item.results[0].availableCount != null ? " · " + item.results[0].availableCount + " seats" : "") + (item.results[0].fare != null ? " · ₹" + item.results[0].fare : "") : (item.reason || item.providerStatus || "No confirmed seats") : item.reason || "Live availability unavailable"}
                     </span>
                   </div>
                 ))}
