@@ -3,8 +3,9 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 
 const CLASSES = ['1A', '2A', '3A', '3E', 'SL', '2S', 'CC', 'EC', 'EA', 'EV', 'FC'];
-const now = new Date();
-const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+const todayParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+const todayValues = Object.fromEntries(todayParts.map(part => [part.type, part.value]));
+const today = `${todayValues.year}-${todayValues.month}-${todayValues.day}`;
 
 function App() {
   const [from, setFrom] = useState('');
