@@ -23,6 +23,18 @@ To enable:
 
 Do not put the key in React code, commit it to GitHub, or share it in chat. The key must remain server-side. The provider key is not supplied by SmartRail AI.
 
+### Independent backup timetable + connections — RailRadar
+
+When RailCore is not configured or its request fails, SmartRail AI can use RailRadar's documented journey-planner API for direct and connecting train schedules. The integration resolves station names/codes, requests up to two transfers with a minimum 30-minute interchange, and supports all common classes returned for every leg.
+
+RailRadar is an independent third-party source, not Indian Railways, CRIS or IRCTC. Its documented API provides timetable and route-planning data; it does **not** provide live seat availability in this integration. Seat availability therefore remains unverified unless a separate authorised availability provider confirms every leg. The published free plan currently lists 100 requests/month; paid tiers are quota-based, not unlimited. See [RailRadar route-planner docs](https://railradar.in/docs/journey-plan), [station search docs](https://railradar.in/docs/search-stations), and [pricing](https://railradar.in/pricing).
+
+To enable:
+1. Create your own API key at [RailRadar Developers](https://railradar.in/).
+2. Add `RAILRADAR_API_KEY` in Vercel → Project → Settings → Environment Variables.
+3. Keep the key server-side; never commit it or put it in frontend code.
+4. Redeploy and test a journey. RailRadar is called only when RailCore is not configured or its search fails.
+
 ### Via-station / split-ticket routes
 
 Connecting routes are calculated from `server/data/timetable.json`. This file is intentionally empty until a current, verified multi-stop timetable with suitable reuse rights is supplied. The app will not use an old or unlicensed dataset as if it were current.
@@ -66,7 +78,7 @@ Station names are resolved through the configured provider. If a name matches mu
 1. Import `shahvrushabh646-wq/smartrail-ai` into Vercel.
 2. Root directory: `./`.
 3. Build command: `npm run build`; output: `dist`.
-4. Add `RAILCORE_KEY` in Vercel Environment Variables if using RailCore.
+4. Add `RAILCORE_KEY` and/or `RAILRADAR_API_KEY` in Vercel Environment Variables. RailRadar is the automatic schedule/connection fallback when RailCore is unavailable.
 5. Deploy the latest `main` commit.
 6. Check `/api/health`, then test a journey search.
 
