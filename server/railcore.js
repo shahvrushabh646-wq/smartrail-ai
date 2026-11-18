@@ -212,10 +212,17 @@ export async function searchRailCoreJourney(fromInput, toInput, date, travelClas
   const query = new URLSearchParams({ from, to, date, match: 'station' });
   const payload = await request(`/routes/trains?${query.toString()}`);
   const rawTrains = payload?.data?.trains || payload?.trains || [];
-  const allTrains = rawTrains.map(normaliseTrain).filter(train =>
-    train.trainNo && train.from && train.to && train.departureMinutes != null &&
-    train.arrivalMinutes != null && train.classes.length
-  );
+  // Providers can occasionally repeat the same train row. Keep one canonical
+  // record per train number, route and departure time before requesting seats.
+  const seenTrainRows = new Set();
+  const allTrains = rawTrains.map(normaliseTrain).filter(train => {
+    if (!train.trainNo || !train.from || !train.to || train.departureMinutes == null ||
+        train.arrivalMinutes == null || !train.classes.length) return false;
+    const key = [train.trainNo, train.from, train.to, train.departureTime].join('|');
+    if (seenTrainRows.has(key)) return false;
+    seenTrainRows.add(key);
+    return true;
+  });
   const now = indiaClock();
   // The provider returns a full-day timetable. On today's journey date, hide
   // departures that have already left before selecting live availability checks.
