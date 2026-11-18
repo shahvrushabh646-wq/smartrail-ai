@@ -107,6 +107,7 @@ export default async function handler(req, res) {
         providerCheckedAt: remote.providerCheckedAt,
         availabilityChecked: remote.availabilityChecked,
         availabilityLimit: remote.availabilityLimit,
+        availabilityCreditsRequested: remote.availabilityCreditsRequested,
         sourceNote: all.length
           ? `${remote.sourceNote} Connecting routes are calculated from the separately loaded local timetable; verify its source and update date.`
           : `${remote.sourceNote} Direct trains are available through this provider. Via-station split routes will appear after a verified multi-stop timetable is imported.`,
