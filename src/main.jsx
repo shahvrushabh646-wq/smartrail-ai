@@ -15,12 +15,14 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [apiStatus, setApiStatus] = useState('checking');
+  const [providerReady, setProviderReady] = useState(false);
 
   useEffect(() => {
     fetch('/api/health')
       .then(async response => {
         const payload = await response.json();
         if (!response.ok || !payload.ok) throw new Error('API unavailable');
+        setProviderReady(Boolean(payload.scheduleProviderConfigured));
         setApiStatus('online');
       })
       .catch(() => setApiStatus('offline'));
@@ -66,7 +68,7 @@ function App() {
           <span className="mark">↗</span>
           <div><b>SmartRail <i>AI</i></b><small>INDIAN RAIL JOURNEY PLANNER</small></div>
         </div>
-        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? 'SEARCH API ONLINE' : apiStatus === 'checking' ? 'CHECKING API' : 'API OFFLINE'}</span>
+        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? (providerReady ? 'LIVE DATA SOURCE READY' : 'API ONLINE · DATA SOURCE SETUP NEEDED') : apiStatus === 'checking' ? 'CHECKING API' : 'API OFFLINE'}</span>
       </header>
 
       <section className="hero">
@@ -80,7 +82,7 @@ function App() {
             </label>
             <button className="swap" type="button" onClick={swapStations} aria-label="Swap stations" title="Swap stations">⇄</button>
             <label>TO
-              <input value={to} onChange={e => setTo(e.target.value)} placeholder="Station name or code" autoComplete="off" required />
+              <input value={to} onChange={e => setTo(e.target.value)} placeholder="e.g. CSMT or Mumbai CSMT" autoComplete="off" required />
             </label>
             <label>JOURNEY DATE
               <input type="date" min={today} value={date} onChange={e => setDate(e.target.value)} required />
