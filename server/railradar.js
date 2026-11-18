@@ -23,7 +23,7 @@ async function request(path, options = {}) {
 }
 
 const normalise = value => String(value || '').toLowerCase()
-  .replace(/\\b(junction|jn\\.?|railway station)\\b/g, '')
+  .replace(/\b(junction|jn\\.?|railway station)\b/g, '')
   .replace(/[^a-z0-9]/g, '');
 
 async function resolveStation(input) {
@@ -45,7 +45,7 @@ async function resolveStation(input) {
 }
 
 function toMinutes(time) {
-  const match = /^(\\d{1,2}):(\\d{2})$/.exec(String(time || ''));
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time || ''));
   if (!match) return null;
   const h = Number(match[1]), m = Number(match[2]);
   return h <= 23 && m <= 59 ? h * 60 + m : null;
@@ -242,9 +242,9 @@ export async function searchRailRadarJourney(fromInput, toInput, date, travelCla
     results: routesWithAvailability,
     source: 'RailRadar',
     providerCheckedAt: payload?.meta?.timestamp || new Date().toISOString(),
-    availabilityChecked: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
-    availabilityCreditsRequested: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
-    availabilityLimit: Math.min(60, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
+    availabilityChecked: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length, 0),
+    availabilityCreditsRequested: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length * route.segments.length, 0),
+    availabilityLimit: Math.min(24, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
     sourceNote: 'RailRadar is an independent third-party timetable and route-data provider, not Indian Railways or IRCTC. Its route planner supplies direct and connecting train schedules, but this response does not confirm live seat availability. Seats remain unverified unless a separate authorised availability provider confirms them.'
   };
 }
