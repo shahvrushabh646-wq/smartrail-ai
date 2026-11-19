@@ -46,3 +46,11 @@
 .partner-card a:hover{text-decoration:underline}
 .partner-disclaimer{margin-top:14px;padding:13px 15px;border:1px solid #e6ebf2;border-radius:9px;background:#f8fafd;color:#687b92;font-size:11px;line-height:1.6}
 @media(max-width:760px){.partner-grid{grid-template-columns:1fr}.partner-card p{min-height:0}}
+
+/* Community provider candidates — listed for transparency, not live integrations. */
+.community-sources{margin-top:24px;padding:18px;background:#f8fafd;border:1px solid #e3eaf3;border-radius:13px}
+.community-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.community-heading h3{margin:0;color:#102744;font:800 17px Manrope,sans-serif}
+.community-intro{max-width:780px;color:#687b92;font-size:12px;line-height:1.65;margin:9px 0 14px}
+.community-sources .partner-card{min-height:190px}
+@media(max-width:760px){.community-sources{padding:14px}.community-heading{align-items:flex-start;flex-direction:column}}
