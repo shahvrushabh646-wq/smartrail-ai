@@ -149,11 +149,20 @@ async function addRailRadarAvailability(routes, date, travelClass) {
           fetchedAt: null
         }))
       ));
-      const timestamps = legs.map(item => item.fetchedAt).filter(Boolean);
-      const newest = timestamps.length ? timestamps.map(Date.parse).filter(Number.isFinite).sort((a,b)=>b-a)[0] : NaN;
-      const ageMinutes = Number.isFinite(newest) ? Math.max(0, (Date.now() - newest) / 60000) : null;
-      const freshness = ageMinutes == null ? 'UNKNOWN' : ageMinutes > 5 ? 'STALE' : 'FRESH';
-      const allAvailable = legs.length === route.segments.length && legs.every(item => item.isAvailable === true);
+      const timestamps = legs.map(item => item.fetchedAt);
+      const parsedTimestamps = timestamps.map(value => value ? Date.parse(value) : NaN);
+      const everyLegTimestampValid = parsedTimestamps.length === route.segments.length &&
+        parsedTimestamps.every(Number.isFinite);
+      const newest = everyLegTimestampValid ? Math.max(...parsedTimestamps) : NaN;
+      const now = Date.now();
+      const ageMinutes = Number.isFinite(newest) && newest <= now + 2 * 60_000
+        ? Math.max(0, (now - newest) / 60000)
+        : null;
+      const freshness = !everyLegTimestampValid || ageMinutes == null
+        ? 'UNKNOWN'
+        : ageMinutes > 5 ? 'STALE' : 'FRESH';
+      const allAvailable = legs.length === route.segments.length &&
+        legs.every(item => item.isAvailable === true && String(item.status || '').toUpperCase() !== 'ERROR');
       const hasError = legs.some(item => item.status === 'ERROR');
       const result = allAvailable && freshness === 'FRESH'
         ? [{
