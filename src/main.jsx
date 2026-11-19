@@ -190,6 +190,7 @@ function App() {
                       {item.fetchedAt && <small>Last provider update: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
                       {item.freshnessAgeMinutes != null && <small>{item.freshness === 'STALE' ? `Data age: ${item.freshnessAgeMinutes} min · exceeds ${item.freshnessThresholdMinutes || 15}-min freshness limit` : `Data age: ${item.freshnessAgeMinutes} min · within ${item.freshnessThresholdMinutes || 15}-min freshness limit`}</small>}
                     </span>
+                    <a className="irctc-verify" href="https://www.irctc.co.in/nget/train-search" target="_blank" rel="noreferrer">Verify live on official IRCTC ↗</a>
                   </div>
                 ))}
               </article>
