@@ -68,9 +68,16 @@ function App() {
     setError('');
     setData(null);
     try {
-      const response = await fetch('/api/search', {
+      const response = await fetch(`/api/search?fresh=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(irctcAccessCode ? { 'x-smr-personal-access-code': irctcAccessCode } : {}) },
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache, no-store, max-age=0',
+          Pragma: 'no-cache',
+          ...(irctcAccessCode ? { 'x-smr-personal-access-code': irctcAccessCode } : {})
+        },
         body: JSON.stringify({ from, to, date, travelClass, routeType })
       });
       const raw = await response.text();
