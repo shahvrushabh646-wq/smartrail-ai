@@ -7,6 +7,22 @@ const todayParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', 
 const todayValues = Object.fromEntries(todayParts.map(part => [part.type, part.value]));
 const today = `${todayValues.year}-${todayValues.month}-${todayValues.day}`;
 
+function readableError(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map(readableError).filter(Boolean).join('; ');
+  if (typeof value === 'object') {
+    const preferred = ['message', 'error', 'detail', 'reason', 'description', 'code'];
+    const parts = preferred.filter(key => value[key] != null).map(key => {
+      const item = readableError(value[key]);
+      return item ? (key === 'message' ? item : `${key}: ${item}`) : '';
+    }).filter(Boolean);
+    return parts.length ? parts.join(' · ') : JSON.stringify(value);
+  }
+  return String(value);
+}
+
 function App() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -62,10 +78,17 @@ function App() {
         const hint = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
         throw new Error(`Search API returned a non-JSON response (HTTP ${response.status}). ${hint || 'Check the Vercel deployment.'}`);
       }
-      if (!response.ok) throw new Error(payload.detail ? `${payload.error || 'Search failed.'} ${payload.detail}` : (payload.error || `Search failed (HTTP ${response.status}).`));
+      if (!response.ok) {
+        const message = readableError(payload.error) || `Search failed (HTTP ${response.status}).`;
+        const detail = readableError(payload.detail);
+        throw new Error(detail ? `${message} — ${detail}` : message);
+      }
+      if (!Array.isArray(payload.results)) {
+        throw new Error('Search API response is missing the results list. Check the deployed API version.');
+      }
       setData(payload);
     } catch (exception) {
-      setError(exception.message || 'Unable to search right now.');
+      setError(readableError(exception?.message) || readableError(exception) || 'Unable to search right now.');
     } finally {
       setBusy(false);
     }
