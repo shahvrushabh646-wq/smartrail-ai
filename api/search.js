@@ -20,6 +20,32 @@ function validDate(value) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function routeKey(route) {
+  return (route.segments || []).map(segment =>
+    [segment.trainNo || '', String(segment.from || '').toUpperCase(),
+      String(segment.to || '').toUpperCase(), segment.departureTime || ''].join('|')
+  ).join('>');
+}
+
+function mergeProviderRoutes(primaryRoutes, secondaryRoutes) {
+  const merged = new Map();
+  for (const route of [...primaryRoutes, ...secondaryRoutes]) {
+    const key = routeKey(route);
+    if (!merged.has(key)) {
+      merged.set(key, { ...route, availability: [...(route.availability || [])] });
+      continue;
+    }
+    const current = merged.get(key);
+    const seen = new Set((current.availability || []).map(item => `${item.class}|${item.source || 'unknown'}`));
+    for (const item of route.availability || []) {
+      const itemKey = `${item.class}|${item.source || 'unknown'}`;
+      if (!seen.has(itemKey)) current.availability.push(item);
+    }
+    current.source = [...new Set([current.source, route.source].filter(Boolean))].join(' + ');
+  }
+  return [...merged.values()];
+}
+
 function findConnections(all, from, to) {
   const norm = value => String(value || '').trim().toUpperCase();
   const connections = [];
@@ -103,27 +129,28 @@ export default async function handler(req, res) {
         const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
         const localConnections = findConnections(all, remote.from, remote.to);
         const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
-        let backupConnections = [];
+        let radarResults = [];
         let backupSourceNote = '';
-        if (routeType !== 'DIRECT' && !all.length && isRailRadarConfigured()) {
+        if (isRailRadarConfigured()) {
           try {
-            const backup = await searchRailRadarJourney(fromInput, toInput, date, travelClass, 'ALL');
-            backupConnections = backup.results.filter(route => route.segments.length > 1);
-            const radarChecked = backupConnections.reduce((sum, route) =>
+            const backup = await searchRailRadarJourney(fromInput, toInput, date, travelClass, routeType);
+            radarResults = backup.results;
+            const radarChecked = radarResults.reduce((sum, route) =>
               sum + (route.availability || []).filter(item => item.source === 'RailRadar').length, 0);
-            const radarConfirmed = backupConnections.reduce((sum, route) =>
+            const radarConfirmed = radarResults.reduce((sum, route) =>
               sum + (route.availability || []).filter(item => item.source === 'RailRadar' && item.results?.length).length, 0);
-            backupSourceNote = ` RailRadar independently supplied ${backupConnections.length} connecting itinerary(s) and checked ${radarChecked} route/class combination(s); ${radarConfirmed} met SmartRail's fresh AVAILABLE checks. Unchecked, stale, RAC, waitlist and unverified results are not marked confirmed.`;
+            backupSourceNote = ` RailRadar independently supplied ${radarResults.length} itinerary(s) and checked ${radarChecked} route/class combination(s); ${radarConfirmed} met SmartRail's fresh AVAILABLE checks. Unchecked, stale, RAC, waitlist and unverified results are not marked confirmed.`;
           } catch (backupError) {
-            backupSourceNote = ` RailRadar connection fallback was unavailable: ${backupError?.message || 'provider error'}.`;
+            backupSourceNote = ` RailRadar secondary source was unavailable: ${backupError?.message || 'provider error'}.`;
           }
         }
-        const viaResults = [...connectionResults, ...backupConnections];
-        const results = routeType === 'DIRECT'
+
+        const localRoutes = routeType === 'DIRECT'
           ? remote.results
           : routeType === 'VIA'
-            ? viaResults
-            : [...remote.results, ...viaResults];
+            ? connectionResults
+            : [...remote.results, ...connectionResults];
+        const results = mergeProviderRoutes(localRoutes, radarResults);
         results.sort((a, b) => {
           if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
           return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
@@ -134,15 +161,13 @@ export default async function handler(req, res) {
           date,
           results,
           timetableRecords: all.length,
-          source: backupConnections.length ? 'RailCore + RailRadar' : remote.source,
+          source: radarResults.length ? 'RailCore + RailRadar' : remote.source,
           providerCheckedAt: remote.providerCheckedAt,
           availabilityChecked: remote.availabilityChecked,
           availabilityLimit: remote.availabilityLimit,
           availabilityCreditsRequested: remote.availabilityCreditsRequested,
           routeType,
-          sourceNote: all.length || backupConnections.length
-            ? `${remote.sourceNote} Via-station routes use the imported timetable when available.${backupSourceNote} Verify each provider's source and update time.`
-            : `${remote.sourceNote} Direct trains are available through RailCore. No verified connecting timetable is available for this search because no imported timetable or working RailRadar backup was returned.`,
+          sourceNote: `${remote.sourceNote} SmartRail combines matching journey results from configured independent providers and keeps each provider's availability result separate and labelled. Via-station routes also use the imported timetable when available.${backupSourceNote} Verify each provider's source and update time.`,
           generatedAt: new Date().toISOString()
         });
       } catch (error) {
