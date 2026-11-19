@@ -9,6 +9,9 @@
     "api/search.js": {
       "includeFiles": "server/data/timetable.json",
       "maxDuration": 30
+    },
+    "api/ping.js": {
+      "maxDuration": 5
     }
   }
 }
