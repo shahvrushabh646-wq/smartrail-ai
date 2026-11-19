@@ -141,6 +141,7 @@ function App() {
                                 : item.status === "ERROR" ? "PROVIDER ERROR" : "NOT CHECKED"}
                       </strong>
                       {item.reason && (item.freshness === 'STALE' || item.freshness === 'UNKNOWN' || item.status !== 'OK' || item.providerStatus !== 'AVAILABLE') && <small>{item.reason}</small>}
+                      {(item.source || (item.results?.length ? data.source : null)) && <small>Availability source: {item.source || data.source}</small>}
                       {item.providerStatus && <small>Provider status: {item.providerStatus}</small>}
                       {item.fetchedAt && <small>Last provider update: {new Date(item.fetchedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</small>}
                       {item.freshnessAgeMinutes != null && <small>{item.freshness === 'STALE' ? `Data age: ${item.freshnessAgeMinutes} min · exceeds ${item.freshnessThresholdMinutes || 15}-min freshness limit` : `Data age: ${item.freshnessAgeMinutes} min · within ${item.freshnessThresholdMinutes || 15}-min freshness limit`}</small>}
