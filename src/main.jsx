@@ -34,6 +34,8 @@ function App() {
   const [error, setError] = useState('');
   const [apiStatus, setApiStatus] = useState('checking');
   const [providerReady, setProviderReady] = useState(false);
+  const [irctcDevConfigured, setIrctcDevConfigured] = useState(false);
+  const [irctcAccessCode, setIrctcAccessCode] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,7 +48,8 @@ function App() {
         }
         const payload = await response.json();
         if (!response.ok || !payload.ok) throw new Error(payload.error || `Health check failed (HTTP ${response.status}).`);
-        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured));
+        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured || payload.irctcDevConfigured));
+        setIrctcDevConfigured(Boolean(payload.irctcDevConfigured));
         setApiStatus('online');
       })
       .catch(() => setApiStatus('offline'))
@@ -68,6 +71,7 @@ function App() {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(irctcAccessCode ? { 'x-smr-personal-access-code': irctcAccessCode } : {}) },
         body: JSON.stringify({ from, to, date, travelClass, routeType })
       });
       const raw = await response.text();
@@ -110,6 +114,9 @@ function App() {
         <p className="sub">Compare direct trains and connecting routes via an interchange station.</p>
         <form onSubmit={search}>
           <div className="fields">
+            {irctcDevConfigured && <label>PERSONAL ACCESS CODE
+              <input type="password" value={irctcAccessCode} onChange={e => setIrctcAccessCode(e.target.value)} placeholder="Enter your private access code" autoComplete="off" />
+            </label>}
             <label>FROM
               <input value={from} onChange={e => setFrom(e.target.value)} placeholder="e.g. PUNE or Pune Junction" autoComplete="off" required />
             </label>
