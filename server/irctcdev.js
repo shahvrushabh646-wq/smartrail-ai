@@ -94,6 +94,7 @@ export async function searchIrctcDevJourney(fromInput, toInput, date, travelClas
         ? (train.classes.length ? train.classes.filter(cls => allClasses.includes(cls)) : allClasses)
         : [travelClass];
       train.availability = await Promise.all(classes.map(async cls => {
+        if (!allClasses.includes(cls)) return { class: cls, status: 'ERROR', results: [], source: 'IRCTC.dev', freshness: 'UNKNOWN', reason: 'This provider documents seat availability only for 1A, 2A, 3A, 3E, SL, CC and EC.' };
         const params = new URLSearchParams({
           from: train.from, to: train.to, date: formatDate(date), class: cls, quota: 'GN'
         });
