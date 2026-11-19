@@ -8,7 +8,7 @@
     },
     "api/search.js": {
       "includeFiles": "server/data/timetable.json",
-      "maxDuration": 15
+      "maxDuration": 30
     }
   }
 }
