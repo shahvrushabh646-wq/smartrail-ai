@@ -31,7 +31,7 @@ async function resolveStation(input) {
   if (/^[A-Z0-9]{2,5}$/.test(raw)) return raw.toUpperCase();
   const payload = await request(`/api/v1/trains/stations?q=${encodeURIComponent(raw)}`);
   const rows = Array.isArray(payload?.data) ? payload.data : [];
-  const norm = value => String(value || '').toLowerCase().replace(/\\b(junction|jn\\.?|railway station)\\b/g, '').replace(/[^a-z0-9]/g, '');
+  const norm = value => String(value || '').toLowerCase().replace(/\b(junction|jn\.?|railway station)\b/g, '').replace(/[^a-z0-9]/g, '');
   const exact = rows.find(row => norm(row.name) === norm(raw) || norm(row.code) === norm(raw));
   if (exact?.code) return String(exact.code).toUpperCase();
   if (rows.length === 1 && rows[0]?.code) return String(rows[0].code).toUpperCase();
@@ -43,7 +43,7 @@ function normaliseTrain(row) {
   const dep = String(row.departure || '');
   const arr = String(row.arrival || '');
   const parseMinutes = value => {
-    const match = /^(\\d{1,2}):(\\d{2})$/.exec(value);
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value);
     return match ? Number(match[1]) * 60 + Number(match[2]) : null;
   };
   const departureMinutes = parseMinutes(dep);
