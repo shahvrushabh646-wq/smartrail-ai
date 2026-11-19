@@ -4,10 +4,11 @@
   "outputDirectory": "dist",
   "functions": {
     "api/health.js": {
-      "maxDuration": 5
+      "maxDuration": 5,
+      "includeFiles": "server/data/timetable.json"
     },
     "api/search.js": {
-      "includeFiles": "server/data/timetable.json",
+      "includeFiles": "server/{data/timetable.json,localTimetable.js,provider.js,railcore.js,railradar.js,irctcdev.js}",
       "maxDuration": 30
     },
     "api/ping.js": {
