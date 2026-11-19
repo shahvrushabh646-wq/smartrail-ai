@@ -152,7 +152,7 @@ async function addRailRadarAvailability(routes, date, travelClass) {
       const timestamps = legs.map(item => item.fetchedAt).filter(Boolean);
       const newest = timestamps.length ? timestamps.map(Date.parse).filter(Number.isFinite).sort((a,b)=>b-a)[0] : NaN;
       const ageMinutes = Number.isFinite(newest) ? Math.max(0, (Date.now() - newest) / 60000) : null;
-      const freshness = ageMinutes == null ? 'UNKNOWN' : ageMinutes > 15 ? 'STALE' : 'FRESH';
+      const freshness = ageMinutes == null ? 'UNKNOWN' : ageMinutes > 5 ? 'STALE' : 'FRESH';
       const allAvailable = legs.length === route.segments.length && legs.every(item => item.isAvailable === true);
       const hasError = legs.some(item => item.status === 'ERROR');
       const result = allAvailable && freshness === 'FRESH'
@@ -171,11 +171,11 @@ async function addRailRadarAvailability(routes, date, travelClass) {
         providerStatus: allAvailable ? 'AVAILABLE' : legs.map(item => item.status).join(' / '),
         freshness,
         freshnessAgeMinutes: ageMinutes == null ? null : Math.ceil(ageMinutes),
-        freshnessThresholdMinutes: 15,
+        freshnessThresholdMinutes: 5,
         fetchedAt: timestamps.sort().at(-1) || null,
         source: 'RailRadar',
         reason: result.length ? null : (freshness !== 'FRESH'
-          ? 'Availability timestamp is missing or older than 15 minutes; not treated as confirmed.'
+          ? 'Availability timestamp is missing or older than 5 minutes; not treated as confirmed.'
           : reasons.join('; '))
       });
     }
