@@ -1,9 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getLiveAvailability } from '../server/provider.js';
-import { isRailCoreConfigured, searchRailCoreJourney } from '../server/railcore.js';
-import { isRailRadarConfigured, searchRailRadarJourney } from '../server/railradar.js';
-import { isIrctcDevConfigured, searchIrctcDevJourney } from '../server/irctcdev.js';
+// Provider adapters are loaded inside the request handler. This keeps a bad or
+// temporarily incompatible adapter from crashing the entire serverless function
+// during module initialisation and allows the API to return a diagnostic JSON error.
 
 async function readTimetable() {
   const file = path.join(process.cwd(), 'server', 'data', 'timetable.json');
@@ -124,6 +123,19 @@ export default async function handler(req, res) {
 
     const all = await readTimetable();
     const personalAccessCode = String(req.headers['x-smr-personal-access-code'] || '');
+
+    // Isolate adapter loading inside the handler so module-load failures become
+    // controlled API responses instead of Vercel's opaque FUNCTION_INVOCATION_FAILED.
+    const [provider, railCore, railRadar, irctcDev] = await Promise.all([
+      import('../server/provider.js'),
+      import('../server/railcore.js'),
+      import('../server/railradar.js'),
+      import('../server/irctcdev.js')
+    ]);
+    const { getLiveAvailability } = provider;
+    const { isRailCoreConfigured, searchRailCoreJourney } = railCore;
+    const { isRailRadarConfigured, searchRailRadarJourney } = railRadar;
+    const { isIrctcDevConfigured, searchIrctcDevJourney } = irctcDev;
 
     let railCoreFailure = null;
     if (isRailCoreConfigured()) {
