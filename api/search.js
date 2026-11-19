@@ -109,7 +109,11 @@ export default async function handler(req, res) {
           try {
             const backup = await searchRailRadarJourney(fromInput, toInput, date, travelClass, 'ALL');
             backupConnections = backup.results.filter(route => route.segments.length > 1);
-            backupSourceNote = ` RailRadar independently supplied ${backupConnections.length} connecting itinerary(s); seat availability from that source is not confirmed.`;
+            const radarChecked = backupConnections.reduce((sum, route) =>
+              sum + (route.availability || []).filter(item => item.source === 'RailRadar').length, 0);
+            const radarConfirmed = backupConnections.reduce((sum, route) =>
+              sum + (route.availability || []).filter(item => item.source === 'RailRadar' && item.results?.length).length, 0);
+            backupSourceNote = ` RailRadar independently supplied ${backupConnections.length} connecting itinerary(s) and checked ${radarChecked} route/class combination(s); ${radarConfirmed} met SmartRail's fresh AVAILABLE checks. Unchecked, stale, RAC, waitlist and unverified results are not marked confirmed.`;
           } catch (backupError) {
             backupSourceNote = ` RailRadar connection fallback was unavailable: ${backupError?.message || 'provider error'}.`;
           }
