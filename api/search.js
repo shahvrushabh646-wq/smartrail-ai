@@ -129,8 +129,10 @@ export default async function handler(req, res) {
     if (isRailCoreConfigured()) {
       try {
         const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
-        const localConnections = findConnections(all, remote.from, remote.to);
-        const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
+        const localConnections = routeType === 'DIRECT' ? [] : findConnections(all, remote.from, remote.to);
+        const connectionResults = localConnections.length
+          ? await addLocalAvailability(localConnections, date, travelClass)
+          : [];
         let irctcDevResults = [];
         let irctcDevNote = '';
         if (isIrctcDevConfigured() && routeType !== 'VIA') {
