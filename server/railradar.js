@@ -11,7 +11,7 @@ async function request(path, options = {}) {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {})
     },
-    signal: AbortSignal.timeout(4000)
+    signal: AbortSignal.timeout(3500)
   });
   let payload;
   try { payload = await response.json(); }
