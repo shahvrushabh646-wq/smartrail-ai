@@ -175,7 +175,31 @@ function App() {
             <a href="https://www.tripjack.com/" target="_blank" rel="noreferrer">Official TripJack website ↗</a>
           </article>
         </div>
-        <div className="partner-disclaimer">Partner status: RailYatri — awaiting authorised feed; ixigo/ConfirmTkt — awaiting authorised feed; IRCTC — separate eligible access/approval required. Existing RailCore/RailRadar results remain separately labelled. No private app APIs or reused credentials are used.</div>
+        <div className="community-sources">
+          <div className="community-heading">
+            <h3>Community integration candidates</h3>
+            <span className="partner-tag">ADDED · DISABLED</span>
+          </div>
+          <p className="community-intro">These three projects are recorded in SmartRail as integration candidates. They are not called for live searches unless their data access and reuse permissions are independently verified.</p>
+          <div className="partner-grid">
+            <article className="partner-card">
+              <div className="partner-top"><h3>ConfirmTkt MCP</h3><span className="partner-tag">Disabled</span></div>
+              <p>Community connector for train search and seat availability. Its reverse-engineered endpoint is not enabled; the code licence does not grant ConfirmTkt data/API rights.</p>
+              <a href="https://github.com/uditya-kumar/confirmtkt-mcp" target="_blank" rel="noreferrer">View source project ↗</a>
+            </article>
+            <article className="partner-card">
+              <div className="partner-top"><h3>RailIN</h3><span className="partner-tag">Disabled</span></div>
+              <p>Personal-use scraping project. No verified licence or permission for SmartRail service use; therefore no scraping or live requests are made.</p>
+              <a href="https://github.com/ash2shukla/RailIN" target="_blank" rel="noreferrer">View source project ↗</a>
+            </article>
+            <article className="partner-card">
+              <div className="partner-top"><h3>MANIT RailwayAPI</h3><span className="partner-tag">Disabled</span></div>
+              <p>Experimental railway-site crawler/API. Repository code terms do not establish permission to scrape or redistribute railway data.</p>
+              <a href="https://github.com/MANIT-Bhopal/RailwayAPI" target="_blank" rel="noreferrer">View source project ↗</a>
+            </article>
+          </div>
+        </div>
+        <div className="partner-disclaimer">Partner status: RailYatri — awaiting authorised feed; ixigo/ConfirmTkt — awaiting authorised feed; IRCTC — separate eligible access/approval required. The three community projects above are listed but disabled. Existing RailCore/RailRadar results remain separately labelled. No private app APIs, scraping, or reused credentials are used.</div>
       </section>
       <footer>SmartRail AI · No invented trains or seat availability. Recheck before booking.</footer>
     </main>
