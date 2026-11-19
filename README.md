@@ -35,6 +35,21 @@ To enable:
 3. Keep the key server-side; never commit it or put it in frontend code.
 4. Redeploy and test a journey. When both provider keys are configured, SmartRail queries RailCore and RailRadar and combines matching itineraries while keeping each source's availability separate. RailRadar is also the fallback if RailCore is unavailable.
 
+### Private personal-use feed — IRCTC.dev (optional)
+
+SmartRail has an optional server-side adapter for the independent `irctc.dev` developer API. It can supply direct train schedules and class-wise 14-day seat-status responses. It is **not** an official IRCTC/Indian Railways/CRIS API or an endorsement by those authorities.
+
+For private personal use only:
+1. Create your own account/key at https://irctc.dev/dashboard.
+2. Set `IRCTC_API_KEY` in Vercel Environment Variables.
+3. Set a strong private `SMARTRAIL_PERSONAL_ACCESS_CODE` in Vercel. The search form asks for this code; the backend checks it before calling this provider. Do not share the code or API key.
+4. Optionally set `IRCTC_DEV_AVAILABILITY_LIMIT` (1–5, default 2). With All Classes, each selected train may trigger multiple class requests.
+5. Redeploy and check `/api/health` for `irctcDevConfigured: true`.
+
+The integration uses the documented station search, trains-between-stations and seat-availability endpoints. Seat availability is displayed as the provider-reported status, but SmartRail deliberately does **not** mark it confirmed: the published response schema does not provide a class-level fetch timestamp for freshness verification. Always verify the current status on the official booking channel.
+
+Important terms: irctc.dev describes itself as an independent service and its terms restrict redistribution, exposing responses through another service, and public/customer-facing use. Keep this integration private to the subscribing user's own application, do not expose it as a public data feed, and review the provider's current terms before use. This adapter does not bypass IRCTC rules or grant official data rights. See [API docs](https://irctc.dev/docs), [seat availability endpoint](https://irctc.dev/guides/irctc-seat-availability-tracker-python/), and [terms](https://irctc.dev/terms/).
+
 #### Community project candidates (listed in UI, disabled by default)
 
 SmartRail lists these three community repositories as integration candidates for transparency, but **does not execute or scrape from them**:
@@ -92,7 +107,7 @@ Station names are resolved through the configured provider. If a name matches mu
 1. Import `shahvrushabh646-wq/smartrail-ai` into Vercel.
 2. Root directory: `./`.
 3. Build command: `npm run build`; output: `dist`.
-4. Add `RAILCORE_KEY` and/or `RAILRADAR_API_KEY` in Vercel Environment Variables. RailRadar is the automatic schedule/connection fallback when RailCore is unavailable.
+4. Add `RAILCORE_KEY` and/or `RAILRADAR_API_KEY` in Vercel Environment Variables. Optionally, for private personal use only, add `IRCTC_API_KEY` and `SMARTRAIL_PERSONAL_ACCESS_CODE`; protect the deployment so it is not exposed as a public service. RailRadar is the automatic schedule/connection fallback when RailCore is unavailable.
 5. Optionally set `RAILRADAR_AVAILABILITY_LIMIT` and `RAILRADAR_QUOTA` to control seat-check volume and quota.
 6. Deploy the latest `main` commit.
 7. Check `/api/health`, then test a journey search.
