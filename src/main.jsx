@@ -70,7 +70,6 @@ function App() {
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(irctcAccessCode ? { 'x-smr-personal-access-code': irctcAccessCode } : {}) },
         body: JSON.stringify({ from, to, date, travelClass, routeType })
       });
