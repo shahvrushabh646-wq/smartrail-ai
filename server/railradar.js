@@ -129,7 +129,12 @@ async function addRailRadarAvailability(routes, date, travelClass) {
 
   // Keep the serverless request bounded. Unchecked combinations are explicitly
   // labelled, never inferred as unavailable or confirmed.
-  const maxChecks = Math.max(1, Math.min(24, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)));
+  const configuredChecks = Number.parseInt(process.env.RAILRADAR_AVAILABILITY_LIMIT || '4', 10);
+  // Keep the secondary provider bounded so a combined search cannot exceed
+  // the serverless execution window. Raise deliberately only after load testing.
+  const maxChecks = Number.isFinite(configuredChecks)
+    ? Math.max(1, Math.min(8, configuredChecks))
+    : 4;
   const selected = checks.slice(0, maxChecks);
   const byRoute = routes.map(() => []);
   let cursor = 0;
@@ -244,7 +249,9 @@ export async function searchRailRadarJourney(fromInput, toInput, date, travelCla
     providerCheckedAt: payload?.meta?.timestamp || new Date().toISOString(),
     availabilityChecked: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length, 0),
     availabilityCreditsRequested: routesWithAvailability.reduce((sum, route) => sum + route.availability.filter(item => item.source === 'RailRadar').length * route.segments.length, 0),
-    availabilityLimit: Math.min(24, Number(process.env.RAILRADAR_AVAILABILITY_LIMIT || 24)),
+    availabilityLimit: Number.isFinite(Number.parseInt(process.env.RAILRADAR_AVAILABILITY_LIMIT || '4', 10))
+      ? Math.max(1, Math.min(8, Number.parseInt(process.env.RAILRADAR_AVAILABILITY_LIMIT || '4', 10)))
+      : 4,
     sourceNote: 'RailRadar is an independent third-party timetable and route-data provider, not Indian Railways or IRCTC. Its route planner supplies direct and connecting train schedules. Seat availability is queried for each checked train/class/leg using RailRadar's documented seat endpoint. Only fresh AVAILABLE results across every leg are marked confirmed; RAC, waitlist, stale, failed and budget-skipped checks are not confirmed. RailRadar describes this seat data as an external aggregation, not authoritative; verify critical details on IRCTC.'
   };
 }
