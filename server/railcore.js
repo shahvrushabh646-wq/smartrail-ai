@@ -164,42 +164,53 @@ async function freshAvailability(trains, date, travelClass) {
   const returnedTrainNumbers = new Set();
   let creditsRequested = 0;
 
+  const batches = [];
   for (let offset = 0; offset < items.length; offset += 25) {
-    const batch = items.slice(offset, offset + 25);
-    creditsRequested += batch.reduce((sum, item) => sum + item.classes.length, 0);
+    batches.push(items.slice(offset, offset + 25));
+  }
+  // Availability batches are independent. Run them concurrently so an
+  // all-classes search does not spend one full provider round-trip per batch.
+  creditsRequested = items.reduce((sum, item) => sum + item.classes.length, 0);
+  const batchResponses = await Promise.all(batches.map(async batch => {
     try {
       const payload = await request('/availability/seats/batch', {
         method: 'POST',
         body: JSON.stringify({ items: batch })
       });
-      const rows = payload?.data?.results || payload?.results || [];
-      const returnedByTrain = new Map();
-      for (const row of rows) {
-        const key = String(row.train_number || '');
-        if (!key) continue;
-        const existing = byTrain.get(key) || new Map();
-        const returned = new Map((row.classes || []).map(item => [String(item.class_code).trim().toUpperCase(), item]));
-        for (const [classCode, value] of returned) existing.set(classCode, value);
-        byTrain.set(key, existing);
-        returnedTrainNumbers.add(key);
-        returnedByTrain.set(key, new Set([...(returnedByTrain.get(key) || []), ...returned.keys()]));
-      }
-      for (const item of batch) {
-        const key = String(item.train_number);
-        const returned = returnedByTrain.get(key) || new Set();
-        for (const classCode of item.classes) {
-          if (!returned.has(classCode)) {
-            if (!failedClasses.has(key)) failedClasses.set(key, new Map());
-            failedClasses.get(key).set(classCode, 'The provider did not return this train/class combination.');
-          }
-        }
-      }
+      return { batch, rows: payload?.data?.results || payload?.results || [], error: null };
     } catch (error) {
-      const reason = error?.message || 'Availability provider request failed.';
+      return { batch, rows: [], error: error?.message || 'Availability provider request failed.' };
+    }
+  }));
+
+  for (const { batch, rows, error } of batchResponses) {
+    if (error) {
       for (const item of batch) {
         const key = String(item.train_number);
         if (!failedClasses.has(key)) failedClasses.set(key, new Map());
-        for (const classCode of item.classes) failedClasses.get(key).set(classCode, reason);
+        for (const classCode of item.classes) failedClasses.get(key).set(classCode, error);
+      }
+      continue;
+    }
+    const returnedByTrain = new Map();
+    for (const row of rows) {
+      const key = String(row.train_number || '');
+      if (!key) continue;
+      const existing = byTrain.get(key) || new Map();
+      const returned = new Map((row.classes || []).map(item => [String(item.class_code).trim().toUpperCase(), item]));
+      for (const [classCode, value] of returned) existing.set(classCode, value);
+      byTrain.set(key, existing);
+      returnedTrainNumbers.add(key);
+      returnedByTrain.set(key, new Set([...(returnedByTrain.get(key) || []), ...returned.keys()]));
+    }
+    for (const item of batch) {
+      const key = String(item.train_number);
+      const returned = returnedByTrain.get(key) || new Set();
+      for (const classCode of item.classes) {
+        if (!returned.has(classCode)) {
+          if (!failedClasses.has(key)) failedClasses.set(key, new Map());
+          failedClasses.get(key).set(classCode, 'The provider did not return this train/class combination.');
+        }
       }
     }
   }
