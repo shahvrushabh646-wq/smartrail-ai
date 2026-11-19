@@ -35,6 +35,16 @@ To enable:
 3. Keep the key server-side; never commit it or put it in frontend code.
 4. Redeploy and test a journey. When both provider keys are configured, SmartRail queries RailCore and RailRadar and combines matching itineraries while keeping each source's availability separate. RailRadar is also the fallback if RailCore is unavailable.
 
+#### Community project candidates (listed in UI, disabled by default)
+
+SmartRail lists these three community repositories as integration candidates for transparency, but **does not execute or scrape from them**:
+
+- [ConfirmTkt MCP](https://github.com/uditya-kumar/confirmtkt-mcp) — the repository code is MIT-licensed, but its described ConfirmTkt endpoint is reverse-engineered. The code licence does not grant permission to access, reuse or redistribute ConfirmTkt's service/data. Disabled unless ConfirmTkt provides written permission and a documented SmartRail API arrangement.
+- [RailIN](https://github.com/ash2shukla/RailIN) — its README describes personal-use scraping and says it is not intended for commercial use; no suitable repository licence was identified. Not used by SmartRail.
+- [MANIT RailwayAPI](https://github.com/MANIT-Bhopal/RailwayAPI) — an experimental crawler/API. Its source-code licence does not grant rights to crawl or redistribute Indian Railways website data. Not used by SmartRail.
+
+These entries are informational provider records only; they do not make network requests, do not change search results, and do not indicate provider approval. Enable a source only after verifying the applicable website/API terms, data rights, permission, and commercial/attribution conditions.
+
 #### Third-party app data partnerships (RailYatri, ixigo/ConfirmTkt, IRCTC)
 
 These providers are **not connected**. Their consumer apps do not expose a public SmartRail developer API contract in the current integration. Do not scrape their private app endpoints, copy session tokens, or reuse credentials. Add a provider only after a written agreement, API documentation, credentials issued for SmartRail, and confirmed commercial/attribution terms. IRCTC access must be obtained through the applicable eligible route; an existing partner's credentials or enquiry API cannot simply be passed through to SmartRail.
