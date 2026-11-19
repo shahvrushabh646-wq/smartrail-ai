@@ -27,13 +27,13 @@ Do not put the key in React code, commit it to GitHub, or share it in chat. The 
 
 When RailCore is not configured or its request fails, SmartRail AI can use RailRadar's documented journey-planner API for direct and connecting train schedules. The integration resolves station names/codes, requests up to two transfers with a minimum 30-minute interchange, and supports all common classes returned for every leg.
 
-RailRadar is an independent third-party source, not Indian Railways, CRIS or IRCTC. In this integration its documented journey-planner endpoint supplies direct and connecting schedules, and its documented seat endpoint is queried per train/class/leg. Only fresh AVAILABLE responses for every leg are marked confirmed; RAC, waitlist, stale timestamps, errors and budget-skipped checks are not confirmed. RailRadar describes availability as externally aggregated, not authoritative, so users should recheck critical details before booking. Its plans are quota-based, not unlimited. See [RailRadar route-planner docs](https://railradar.in/docs/journey-plan), [seat-availability docs](https://railradar.in/docs/train-seat-availability), [station search docs](https://railradar.in/docs/search-stations), and [pricing](https://railradar.in/pricing).
+RailRadar is an independent third-party source, not Indian Railways, CRIS or IRCTC. In this integration its documented journey-planner endpoint supplies direct and connecting schedules, and its documented seat endpoint is queried per train/class/leg. Only fresh AVAILABLE responses for every leg are marked confirmed; RAC, waitlist, stale timestamps, errors and budget-skipped checks are not confirmed. RailRadar describes availability as externally aggregated, not authoritative, so users should recheck critical details before booking. Its plans are quota-based, not unlimited. See [RailRadar route-planner docs](https://railradar.in/docs/journey-plan), [station search docs](https://railradar.in/docs/search-stations), and [pricing](https://railradar.in/pricing).
 
 To enable:
 1. Create your own API key at [RailRadar Developers](https://railradar.in/).
 2. Add `RAILRADAR_API_KEY` in Vercel → Project → Settings → Environment Variables.
 3. Keep the key server-side; never commit it or put it in frontend code.
-4. Redeploy and test a journey. RailRadar is called only when RailCore is not configured or its search fails.
+4. Redeploy and test a journey. RailRadar is used as a backup when RailCore is unavailable; it is also queried for connecting routes when the local timetable is empty and the user searches Direct + Via or Via routes.
 
 ### Via-station / split-ticket routes
 
