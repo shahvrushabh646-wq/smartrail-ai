@@ -110,7 +110,7 @@ function App() {
       <section className="results">
         <div className="sectionhead">
           <div><p className="eyebrow">YOUR OPTIONS</p><h2>Journey results</h2></div>
-          <span className="pill">{data?.source === "RailCore" ? "Live direct trains · independent provider" : "Direct + via-station journey planner"}</span>
+          <span className="pill">{data?.source?.includes("RailCore") && data?.source?.includes("RailRadar") ? "Multi-source journey results" : data?.source === "RailCore" ? "Live direct trains · independent provider" : "Direct + via-station journey planner"}</span>
         </div>
 
         {error && <div className="error" role="alert"><b>Search could not be completed</b><span>{error}</span></div>}
@@ -126,7 +126,7 @@ function App() {
                 {route.interchangeMinutes != null && <small className="buffer">Connection buffer: {Math.floor(route.interchangeMinutes / 60)}h {route.interchangeMinutes % 60}m</small>}
                 {route.availability.length === 0 && <div className="classrow"><b>No common class</b><span>Not offered on every leg</span></div>}
                 {route.availability.map(item => (
-                  <div className="classrow" key={item.class}>
+                  <div className="classrow" key={`${item.class}-${item.source || 'unknown'}`}>
                     <b>{item.class}</b>
                     <span className={item.results?.length ? 'confirmed' : item.freshness === 'STALE' || item.freshness === 'UNKNOWN' ? 'stale' : item.status === 'OK' ? 'notavailable' : 'unchecked'}>
                       <strong className="availability-state">
@@ -157,7 +157,7 @@ function App() {
           <div><p className="eyebrow">DATA PARTNERSHIPS</p><h2 id="partners-title">Help us bring verified rail data to SmartRail</h2></div>
           <span className="pill">PARTNERSHIP ENQUIRIES</span>
         </div>
-        <p className="partners-intro">We are exploring licensed data partnerships for reliable train schedules and class-wise seat availability. These are contact leads only; no provider is connected or has approved SmartRail AI yet.</p>
+        <p className="partners-intro">SmartRail currently combines its configured RailCore and RailRadar feeds where both are available. RailYatri, ixigo/ConfirmTkt and direct IRCTC data feeds are not connected: their authorised API access and written terms have not been provided to SmartRail.</p>
         <div className="partner-grid">
           <article className="partner-card">
             <div className="partner-top"><h3>RailYatri</h3><span className="partner-tag">First contact</span></div>
@@ -175,7 +175,7 @@ function App() {
             <a href="https://www.tripjack.com/" target="_blank" rel="noreferrer">Official TripJack website ↗</a>
           </article>
         </div>
-        <div className="partner-disclaimer">Integration status: Not connected · Written permission, API documentation and commercial terms are required before any provider data is used. SmartRail will not access private app APIs or reuse another app's credentials.</div>
+        <div className="partner-disclaimer">Partner status: RailYatri — awaiting authorised feed; ixigo/ConfirmTkt — awaiting authorised feed; IRCTC — separate eligible access/approval required. Existing RailCore/RailRadar results remain separately labelled. No private app APIs or reused credentials are used.</div>
       </section>
       <footer>SmartRail AI · No invented trains or seat availability. Recheck before booking.</footer>
     </main>
