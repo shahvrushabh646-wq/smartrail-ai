@@ -3,6 +3,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
+    "api/health.js": {
+      "maxDuration": 5
+    },
     "api/search.js": {
       "includeFiles": "server/data/timetable.json",
       "maxDuration": 15
