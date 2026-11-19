@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getLiveAvailability } from '../server/provider.js';
 import { isRailCoreConfigured, searchRailCoreJourney } from '../server/railcore.js';
 import { isRailRadarConfigured, searchRailRadarJourney } from '../server/railradar.js';
+import { isIrctcDevConfigured, searchIrctcDevJourney } from '../server/irctcdev.js';
 
 async function readTimetable() {
   const file = path.join(process.cwd(), 'server', 'data', 'timetable.json');
@@ -122,6 +123,7 @@ export default async function handler(req, res) {
     }
 
     const all = await readTimetable();
+    const personalAccessCode = String(req.headers['x-smr-personal-access-code'] || '');
 
     let railCoreFailure = null;
     if (isRailCoreConfigured()) {
@@ -129,6 +131,17 @@ export default async function handler(req, res) {
         const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
         const localConnections = findConnections(all, remote.from, remote.to);
         const connectionResults = await addLocalAvailability(localConnections, date, travelClass);
+        let irctcDevResults = [];
+        let irctcDevNote = '';
+        if (isIrctcDevConfigured() && routeType !== 'VIA') {
+          try {
+            const personal = await searchIrctcDevJourney(fromInput, toInput, date, travelClass, personalAccessCode);
+            irctcDevResults = personal.results;
+            irctcDevNote = ` ${personal.sourceNote}`;
+          } catch (personalError) {
+            irctcDevNote = ` Personal IRCTC.dev source was not used: ${personalError?.message || 'provider error'}.`;
+          }
+        }
         let radarResults = [];
         let backupSourceNote = '';
         if (isRailRadarConfigured()) {
@@ -150,7 +163,7 @@ export default async function handler(req, res) {
           : routeType === 'VIA'
             ? connectionResults
             : [...remote.results, ...connectionResults];
-        const results = mergeProviderRoutes(localRoutes, radarResults);
+        const results = mergeProviderRoutes(mergeProviderRoutes(localRoutes, radarResults), irctcDevResults);
         results.sort((a, b) => {
           if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
           return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
@@ -161,17 +174,37 @@ export default async function handler(req, res) {
           date,
           results,
           timetableRecords: all.length,
-          source: radarResults.length ? 'RailCore + RailRadar' : remote.source,
+          source: [remote.source, radarResults.length ? 'RailRadar' : null, irctcDevResults.length ? 'IRCTC.dev' : null].filter(Boolean).join(' + '),
           providerCheckedAt: remote.providerCheckedAt,
           availabilityChecked: remote.availabilityChecked,
           availabilityLimit: remote.availabilityLimit,
           availabilityCreditsRequested: remote.availabilityCreditsRequested,
           routeType,
-          sourceNote: `${remote.sourceNote} SmartRail combines matching journey results from configured independent providers and keeps each provider's availability result separate and labelled. Via-station routes also use the imported timetable when available.${backupSourceNote} Verify each provider's source and update time.`,
+          sourceNote: `${remote.sourceNote} SmartRail combines matching journey results from configured independent providers and keeps each provider's availability result separate and labelled. Via-station routes also use the imported timetable when available.${irctcDevNote}${backupSourceNote} Verify each provider's source and update time.`,
           generatedAt: new Date().toISOString()
         });
       } catch (error) {
         railCoreFailure = error?.message || 'RailCore is temporarily unavailable.';
+      }
+    }
+
+    // Personal-use IRCTC.dev integration is a direct-route fallback. It requires
+    // the account owner's API key plus the private SmartRail access code.
+    if ((railCoreFailure || !isRailCoreConfigured()) && isIrctcDevConfigured() && routeType !== 'VIA') {
+      try {
+        const personal = await searchIrctcDevJourney(fromInput, toInput, date, travelClass, personalAccessCode);
+        return res.status(200).json({
+          from: personal.from, to: personal.to, date, results: personal.results,
+          timetableRecords: all.length, source: personal.source,
+          providerCheckedAt: personal.providerCheckedAt,
+          availabilityChecked: personal.availabilityChecked,
+          availabilityLimit: personal.availabilityLimit,
+          routeType, providerError: railCoreFailure,
+          sourceNote: `${personal.sourceNote}${railCoreFailure ? ` RailCore fallback reason: ${railCoreFailure}.` : ''}`,
+          generatedAt: new Date().toISOString()
+        });
+      } catch (personalError) {
+        railCoreFailure = [railCoreFailure, `IRCTC.dev: ${personalError?.message || 'provider error'}`].filter(Boolean).join(' | ');
       }
     }
 
