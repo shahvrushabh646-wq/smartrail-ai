@@ -1,5 +1,6 @@
 import { isRailCoreConfigured } from '../server/railcore.js';
 import { isRailRadarConfigured } from '../server/railradar.js';
+import { isIrctcDevConfigured } from '../server/irctcdev.js';
 
 export default function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -11,6 +12,7 @@ export default function handler(req, res) {
   const railCoreConfigured = isRailCoreConfigured();
   const railRadarConfigured = isRailRadarConfigured();
   const customAvailabilityConfigured = Boolean(process.env.RAIL_AVAILABILITY_URL && process.env.RAIL_API_KEY);
+  const irctcDevConfigured = isIrctcDevConfigured();
   return res.status(200).json({
     ok: true,
     service: 'SmartRail AI',
@@ -18,7 +20,8 @@ export default function handler(req, res) {
     scheduleProviderConfigured: railCoreConfigured,
     backupScheduleProviderConfigured: railRadarConfigured,
     customAvailabilityProviderConfigured: customAvailabilityConfigured,
-    anyProviderConfigured: railCoreConfigured || railRadarConfigured || customAvailabilityConfigured,
+    irctcDevConfigured,
+    anyProviderConfigured: railCoreConfigured || railRadarConfigured || customAvailabilityConfigured || irctcDevConfigured,
     checkedAt: new Date().toISOString()
   });
 }
