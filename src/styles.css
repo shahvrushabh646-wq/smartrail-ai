@@ -54,3 +54,6 @@
 .community-intro{max-width:780px;color:#687b92;font-size:12px;line-height:1.65;margin:9px 0 14px}
 .community-sources .partner-card{min-height:190px}
 @media(max-width:760px){.community-sources{padding:14px}.community-heading{align-items:flex-start;flex-direction:column}}
+
+
+.irctc-verify{align-self:center;white-space:nowrap;font-size:10px;font-weight:700;color:#286bc9;text-decoration:none;margin-left:14px}.irctc-verify:hover{text-decoration:underline}@media(max-width:560px){.classrow{flex-wrap:wrap;gap:8px}.irctc-verify{margin-left:auto}}
