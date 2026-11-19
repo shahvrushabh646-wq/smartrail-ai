@@ -25,7 +25,7 @@ Do not put the key in React code, commit it to GitHub, or share it in chat. The 
 
 ### Independent backup timetable + connections — RailRadar
 
-When RailCore is not configured or its request fails, SmartRail AI can use RailRadar's documented journey-planner API for direct and connecting train schedules. The integration resolves station names/codes, requests up to two transfers with a minimum 30-minute interchange, and supports all common classes returned for every leg.
+When RailCore is configured, SmartRail also queries RailRadar (when its key is configured) as an independent second source for direct and connecting itineraries. Matching journeys are merged into one journey card while each provider's class-wise availability remains a separate, source-labelled row. If RailCore is not configured or its request fails, RailRadar can serve as the fallback. The integration resolves station names/codes, requests up to two transfers with a minimum 30-minute interchange, and supports classes returned for every leg.
 
 RailRadar is an independent third-party source, not Indian Railways, CRIS or IRCTC. In this integration its documented journey-planner endpoint supplies direct and connecting schedules, and its documented seat endpoint is queried per train/class/leg. Only fresh AVAILABLE responses for every leg are marked confirmed; RAC, waitlist, stale timestamps, errors and budget-skipped checks are not confirmed. RailRadar describes availability as externally aggregated, not authoritative, so users should recheck critical details before booking. Its plans are quota-based, not unlimited. See [RailRadar route-planner docs](https://railradar.in/docs/journey-plan), [station search docs](https://railradar.in/docs/search-stations), and [pricing](https://railradar.in/pricing).
 
@@ -33,9 +33,13 @@ To enable:
 1. Create your own API key at [RailRadar Developers](https://railradar.in/).
 2. Add `RAILRADAR_API_KEY` in Vercel → Project → Settings → Environment Variables.
 3. Keep the key server-side; never commit it or put it in frontend code.
-4. Redeploy and test a journey. RailRadar is used as a backup when RailCore is unavailable; it is also queried for connecting routes when the local timetable is empty and the user searches Direct + Via or Via routes.
+4. Redeploy and test a journey. When both provider keys are configured, SmartRail queries RailCore and RailRadar and combines matching itineraries while keeping each source's availability separate. RailRadar is also the fallback if RailCore is unavailable.
 
-### Via-station / split-ticket routes
+#### Third-party app data partnerships (RailYatri, ixigo/ConfirmTkt, IRCTC)
+
+These providers are **not connected**. Their consumer apps do not expose a public SmartRail developer API contract in the current integration. Do not scrape their private app endpoints, copy session tokens, or reuse credentials. Add a provider only after a written agreement, API documentation, credentials issued for SmartRail, and confirmed commercial/attribution terms. IRCTC access must be obtained through the applicable eligible route; an existing partner's credentials or enquiry API cannot simply be passed through to SmartRail.
+
+## Via-station / split-ticket routes
 
 Connecting routes are calculated from `server/data/timetable.json`. This file is intentionally empty until a current, verified multi-stop timetable with suitable reuse rights is supplied. The app will not use an old or unlicensed dataset as if it were current.
 
