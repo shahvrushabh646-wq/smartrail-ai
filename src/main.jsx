@@ -173,7 +173,7 @@ function App() {
                           : item.freshness === 'STALE'
                             ? "STALE"
                             : item.freshness === 'UNKNOWN'
-                              ? "UNVERIFIED"
+                              ? `UNVERIFIED · provider says ${item.providerStatus || "unknown"}`
                               : item.status === "OK"
                                 ? (item.providerStatus === 'NOT_AVAILABLE' ? 'NOT AVAILABLE' : item.reason || item.providerStatus || "Not available")
                                 : item.status === "ERROR" ? "PROVIDER ERROR" : "NOT CHECKED"}
