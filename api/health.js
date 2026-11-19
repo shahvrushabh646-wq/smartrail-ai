@@ -30,6 +30,15 @@ export default function handler(req, res) {
     irctcDevConfigured,
     anyProviderConfigured: railCoreConfigured || railRadarConfigured ||
       customAvailabilityConfigured || irctcDevConfigured,
+    deployment: {
+      environment: process.env.VERCEL_ENV || 'unknown',
+      commit: process.env.VERCEL_GIT_COMMIT_SHA || null,
+      url: process.env.VERCEL_URL || null
+    },
+    availability: {
+      defaultTrainLimit: 'ALL',
+      configuredTrainLimit: process.env.RAILCORE_AVAILABILITY_LIMIT || 'ALL'
+    },
     checkedAt: new Date().toISOString()
   });
 }
