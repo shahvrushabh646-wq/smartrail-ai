@@ -70,7 +70,7 @@ function findConnections(all, from, to) {
   });
 }
 
-async function addLocalAvailability(routes, date, travelClass) {
+async function addLocalAvailability(routes, date, travelClass, getLiveAvailability) {
   return Promise.all(routes.map(async route => {
     const sets = route.segments.map(segment => new Set((segment.classes || []).map(c => String(c).toUpperCase())));
     const commonClasses = [...(sets[0] || [])].filter(cls => sets.every(set => set.has(cls)));
@@ -126,16 +126,31 @@ export default async function handler(req, res) {
 
     // Isolate adapter loading inside the handler so module-load failures become
     // controlled API responses instead of Vercel's opaque FUNCTION_INVOCATION_FAILED.
-    const [provider, railCore, railRadar, irctcDev] = await Promise.all([
-      import('../server/provider.js'),
-      import('../server/railcore.js'),
-      import('../server/railradar.js'),
-      import('../server/irctcdev.js')
-    ]);
-    const { getLiveAvailability } = provider;
-    const { isRailCoreConfigured, searchRailCoreJourney } = railCore;
-    const { isRailRadarConfigured, searchRailRadarJourney } = railRadar;
-    const { isIrctcDevConfigured, searchIrctcDevJourney } = irctcDev;
+    const moduleLoadErrors = [];
+    async function loadAdapter(label, loader) {
+      try { return await loader(); }
+      catch (loadError) {
+        const detail = loadError?.message || String(loadError);
+        moduleLoadErrors.push({ adapter: label, error: detail });
+        console.error(`SmartRail adapter load failed [${label}]:`, loadError);
+        return null;
+      }
+    }
+    const provider = await loadAdapter('availability', () => import('../server/provider.js'));
+    const railCore = await loadAdapter('RailCore', () => import('../server/railcore.js'));
+    const railRadar = await loadAdapter('RailRadar', () => import('../server/railradar.js'));
+    const irctcDev = await loadAdapter('IRCTC.dev', () => import('../server/irctcdev.js'));
+
+    const getLiveAvailability = provider?.getLiveAvailability || (async () => ({
+      status: 'UNAVAILABLE',
+      reason: 'No compatible authorised availability adapter could be loaded.'
+    }));
+    const isRailCoreConfigured = railCore?.isRailCoreConfigured || (() => false);
+    const searchRailCoreJourney = railCore?.searchRailCoreJourney;
+    const isRailRadarConfigured = railRadar?.isRailRadarConfigured || (() => false);
+    const searchRailRadarJourney = railRadar?.searchRailRadarJourney;
+    const isIrctcDevConfigured = irctcDev?.isIrctcDevConfigured || (() => false);
+    const searchIrctcDevJourney = irctcDev?.searchIrctcDevJourney;
 
     let railCoreFailure = null;
     if (isRailCoreConfigured()) {
@@ -143,7 +158,7 @@ export default async function handler(req, res) {
         const remote = await searchRailCoreJourney(fromInput, toInput, date, travelClass);
         const localConnections = routeType === 'DIRECT' ? [] : findConnections(all, remote.from, remote.to);
         const connectionResults = localConnections.length
-          ? await addLocalAvailability(localConnections, date, travelClass)
+          ? await addLocalAvailability(localConnections, date, travelClass, getLiveAvailability)
           : [];
         let irctcDevResults = [];
         let irctcDevNote = '';
@@ -266,6 +281,7 @@ export default async function handler(req, res) {
         results: [],
         timetableRecords: 0,
         source: null,
+        adapterLoadErrors: moduleLoadErrors,
         sourceNote: 'No train data source is connected. Configure RAILCORE_KEY for the independent RailCore API, or import a current timetable feed whose licence permits this use. Live seat availability is a separate service. No trains or seat counts have been invented.',
         generatedAt: new Date().toISOString()
       });
@@ -275,7 +291,7 @@ export default async function handler(req, res) {
     const direct = all.filter(train => norm(train.from) === norm(fromInput) && norm(train.to) === norm(toInput));
     const routes = routeType === 'VIA' ? [] : direct.map(train => ({ train, segments: [train] }));
     if (routeType !== 'DIRECT') routes.push(...findConnections(all, fromInput, toInput));
-    const results = await addLocalAvailability(routes, date, travelClass);
+    const results = await addLocalAvailability(routes, date, travelClass, getLiveAvailability);
     results.sort((a, b) => {
       if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
       return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
@@ -299,7 +315,8 @@ export default async function handler(req, res) {
     console.error('SmartRail search error:', error);
     return res.status(502).json({
       error: 'SmartRail could not complete this search.',
-      detail: error?.message || 'The train data provider is temporarily unavailable.'
+      detail: error?.message || 'The train data provider is temporarily unavailable.',
+      errorName: error?.name || 'Error'
     });
   }
 }
