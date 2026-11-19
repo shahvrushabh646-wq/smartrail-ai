@@ -20,14 +20,22 @@ function App() {
   const [providerReady, setProviderReady] = useState(false);
 
   useEffect(() => {
-    fetch('/api/health')
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    fetch('/api/health', { cache: 'no-store', headers: { Accept: 'application/json' }, signal: controller.signal })
       .then(async response => {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error(`Health endpoint returned a non-JSON response (HTTP ${response.status}).`);
+        }
         const payload = await response.json();
-        if (!response.ok || !payload.ok) throw new Error('API unavailable');
-        setProviderReady(Boolean(payload.scheduleProviderConfigured));
+        if (!response.ok || !payload.ok) throw new Error(payload.error || `Health check failed (HTTP ${response.status}).`);
+        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured));
         setApiStatus('online');
       })
-      .catch(() => setApiStatus('offline'));
+      .catch(() => setApiStatus('offline'))
+      .finally(() => clearTimeout(timeout));
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, []);
 
   function swapStations() {
@@ -70,7 +78,7 @@ function App() {
           <span className="mark">↗</span>
           <div><b>SmartRail <i>AI</i></b><small>INDIAN RAIL JOURNEY PLANNER</small></div>
         </div>
-        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? (providerReady ? 'LIVE DATA SOURCE READY' : 'API ONLINE · DATA SOURCE SETUP NEEDED') : apiStatus === 'checking' ? 'CHECKING API' : 'API OFFLINE'}</span>
+        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? (providerReady ? 'LIVE DATA SOURCE READY' : 'API ONLINE · DATA SOURCE SETUP NEEDED') : apiStatus === 'checking' ? 'CHECKING API' : 'API CHECK FAILED · TRY SEARCH'}</span>
       </header>
 
       <section className="hero">
@@ -103,7 +111,7 @@ function App() {
               </select>
             </label>
           </div>
-          <button className="search-button" disabled={busy || apiStatus === 'offline'}>{busy ? 'SEARCHING…' : 'Search trains →'}</button>
+          <button className="search-button" disabled={busy}>{busy ? 'SEARCHING…' : 'Search trains →'}</button>
         </form>
       </section>
 
