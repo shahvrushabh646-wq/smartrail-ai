@@ -132,7 +132,7 @@ function App() {
           <span className="mark">↗</span>
           <div><b>SmartRail <i>AI</i></b><small>INDIAN RAIL JOURNEY PLANNER</small></div>
         </div>
-        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? (providerReady ? 'LIVE DATA SOURCE READY' : 'API ONLINE · DATA SOURCE SETUP NEEDED') : apiStatus === 'checking' ? 'CHECKING API' : 'API CHECK FAILED · TRY SEARCH'}</span>
+        <span className={`live ${apiStatus}`}>● {apiStatus === 'online' ? 'API ONLINE · CHROME BRIDGE' : apiStatus === 'checking' ? 'CHECKING API' : 'API CHECK FAILED · TRY SEARCH'}</span>
       </header>
 
       <section className="hero">
