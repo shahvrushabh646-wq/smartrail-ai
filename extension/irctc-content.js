@@ -3,6 +3,7 @@
   const STATUS_RE = /\b(AVAILABLE\s*[-: ]\s*\d+|AVAIL(?:ABLE)?\s*\d+|RAC\s*[-: ]?\s*\d+|WL\s*[-: ]?\s*\d+|WAITLIST\s*[-: ]?\s*\d+|REGRET|NOT\s+AVAILABLE)\b/i;
   let lastSignature = "";
   let activeSearch = null;
+  let availabilityTriggered = false;
 
   function pageDate() {
     const params = new URLSearchParams(location.search);
@@ -189,7 +190,8 @@
   }
 
   function clickClassAvailability(travelClass) {
-    if (!activeSearch?.submitted || !travelClass || travelClass === "ALL") return;
+    if (!activeSearch?.submitted || !travelClass || travelClass === "ALL" || availabilityTriggered) return;
+    availabilityTriggered = true;
     const controls = Array.from(document.querySelectorAll("button,[role='button'],a"))
       .filter(visible)
       .filter(item => (item.innerText || item.textContent || "").trim().toUpperCase() === travelClass)
