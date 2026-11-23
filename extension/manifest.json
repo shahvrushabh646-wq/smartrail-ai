@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "SmartRail AI — IRCTC Availability Bridge",
+  "version": "0.1.0",
+  "description": "Reads seat-status text currently visible on your own IRCTC tab and shares it with SmartRail AI in your browser.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.irctc.co.in/*",
+    "https://smartrail-ai-mu.vercel.app/*",
+    "http://localhost:5173/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.irctc.co.in/*"
+      ],
+      "js": [
+        "irctc-content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://smartrail-ai-mu.vercel.app/*",
+        "http://localhost:5173/*"
+      ],
+      "js": [
+        "smartrail-content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
