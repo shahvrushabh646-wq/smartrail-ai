@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SmartRail AI — IRCTC Availability Bridge",
-  "version": "0.1.0",
-  "description": "Reads seat-status text currently visible on your own IRCTC tab and shares it with SmartRail AI in your browser.",
+  "version": "0.2.0",
+  "description": "Automatically opens your IRCTC tab when you search in SmartRail and bridges visible availability text back to SmartRail.",
   "permissions": [
     "storage",
     "tabs"
