@@ -145,6 +145,7 @@
       return { ok: false, error: "SmartRail journey details are incomplete." };
     }
     activeSearch = { ...payload, submitted: false };
+    availabilityTriggered = false;
     const fromInput = findVisibleInput([
       'input[placeholder*="From" i]', 'input[aria-label*="From" i]', 'input[formcontrolname*="origin" i]', 'input[id*="origin" i]', 'input[name*="from" i]'
     ]);
