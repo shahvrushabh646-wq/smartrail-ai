@@ -5,7 +5,8 @@
   "description": "Automatically fills and submits your journey in IRCTC from SmartRail and bridges visible availability back to the app.",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.irctc.co.in/*",
