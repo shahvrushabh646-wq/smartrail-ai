@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SmartRail AI — IRCTC Availability Bridge",
-  "version": "0.2.0",
-  "description": "Automatically opens your IRCTC tab when you search in SmartRail and bridges visible availability text back to SmartRail.",
+  "version": "0.3.0",
+  "description": "Automatically fills and submits your journey in IRCTC from SmartRail and bridges visible availability back to the app.",
   "permissions": [
     "storage",
     "tabs"
