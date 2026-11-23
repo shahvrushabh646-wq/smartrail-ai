@@ -115,22 +115,6 @@ Station names are resolved through the configured provider. If a name matches mu
 This is an informational search tool, not a booking engine. Recheck availability at the final booking source before purchasing tickets.
 
 
-## Optional Chrome extension — browser-visible IRCTC availability
-
-SmartRail includes an optional Chrome/Edge extension bridge in `extension/`. It reads class-wise status text already visible on an IRCTC page you open yourself and displays captured observations in SmartRail search results. This is a browser companion, not an independent live availability API.
-
-Install:
-1. Open `chrome://extensions` and enable Developer mode.
-2. Click **Load unpacked** and select this repository's `extension` directory.
-3. Open SmartRail AI in a tab.
-4. In another tab, open IRCTC, search the same journey, and expand/check availability so the class status is visible.
-5. Return to SmartRail and click **Refresh from browser**.
-
-The extension does not log in, book, submit forms, read cookies, call private APIs, or bypass CAPTCHA. It stores up to 80 recent observations in Chrome local storage. Page markup may change, so only recognized rows appear; unrecognized/missing status is **not captured**, not unavailable. Refresh before booking.
-
-See [extension installation and limitations](extension/README.md).
-
-
 ## Server-side seat availability (no Chrome extension required)
 
 SmartRail calls railway data providers from its backend. The optional browser bridge is not needed for search.
