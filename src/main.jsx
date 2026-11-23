@@ -178,10 +178,10 @@ function App() {
               </div>
               <button type="button" className="bridge-refresh" onClick={() => window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin)}>Refresh from browser</button>
             </div>
-            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension. When you press Search trains, it will open or focus IRCTC automatically; sign in if needed, search your journey, and make the class-wise availability visible. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
+            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension. Search trains sends your origin, destination, date and class to IRCTC and attempts to fill and submit the journey form automatically. Login, CAPTCHA, or station/date picker confirmation may still need you. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
             {bridgeStatus && <p className="bridge-help">{bridgeStatus}</p>}
             {extensionStatus === 'connected' && irctcSnapshots.filter(item => !item.date || item.date === date).length === 0
-              ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. In the automatically opened IRCTC tab, search the same journey and make the availability text visible.</p>
+              ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. Wait for the automatic IRCTC search to finish; if IRCTC requests login, CAPTCHA, or station/date confirmation, complete that step.</p>
               : <div className="browser-status-list">
                   {irctcSnapshots.filter(item => !item.date || item.date === date).slice(0, 24).map((item, index) => (
                     <div className="browser-status" key={item.trainNo + item.travelClass + item.date + index}>
