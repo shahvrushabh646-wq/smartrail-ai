@@ -133,32 +133,26 @@ export default async function handler(req, res) {
     // Isolate adapter loading inside the handler so module-load failures become
     // controlled API responses instead of Vercel's opaque FUNCTION_INVOCATION_FAILED.
     const moduleLoadErrors = [];
-    async function loadAdapter(label, loader) {
-      try { return await loader(); }
-      catch (loadError) {
-        const detail = loadError?.message || String(loadError);
-        moduleLoadErrors.push({ adapter: label, error: detail });
-        console.error(`SmartRail adapter load failed [${label}]:`, loadError);
-        return null;
-      }
-    }
+    // Server-side third-party providers are disabled; the browser bridge
+    // only relays status text visible in the user's own IRCTC tab.
+    async function loadAdapter() { return null; }
     const provider = await loadAdapter('availability', () => import('../server/provider.js'));
     const railCore = await loadAdapter('RailCore', () => import('../server/railcore.js'));
     const railRadar = await loadAdapter('RailRadar', () => import('../server/railradar.js'));
     const irctcDev = await loadAdapter('IRCTC.dev', () => import('../server/irctcdev.js'));
     const railKit = await loadAdapter('RailKit', () => import('../server/railkit.js'));
 
-    const getLiveAvailability = provider?.getLiveAvailability || (async () => ({
+    const getLiveAvailability = async () => ({
       status: 'UNAVAILABLE',
-      reason: 'No compatible authorised availability adapter could be loaded.'
-    }));
-    const isRailCoreConfigured = railCore?.isRailCoreConfigured || (() => false);
+      reason: 'Use the SmartRail Chrome bridge to capture availability visible on your own IRCTC page.'
+    });
+    const isRailCoreConfigured = () => false;
     const searchRailCoreJourney = railCore?.searchRailCoreJourney;
-    const isRailRadarConfigured = railRadar?.isRailRadarConfigured || (() => false);
+    const isRailRadarConfigured = () => false;
     const searchRailRadarJourney = railRadar?.searchRailRadarJourney;
-    const isIrctcDevConfigured = irctcDev?.isIrctcDevConfigured || (() => false);
+    const isIrctcDevConfigured = () => false;
     const searchIrctcDevJourney = irctcDev?.searchIrctcDevJourney;
-    const isRailKitConfigured = railKit?.isRailKitConfigured || (() => false);
+    const isRailKitConfigured = () => false;
     const searchRailKitJourney = railKit?.searchRailKitJourney;
 
     let railCoreFailure = null;
@@ -321,7 +315,7 @@ export default async function handler(req, res) {
         timetableRecords: 0,
         source: null,
         adapterLoadErrors: moduleLoadErrors,
-        sourceNote: 'No train data source is connected. Configure RAILCORE_KEY for the independent RailCore API, or import a current timetable feed whose licence permits this use. Live seat availability is a separate service. No trains or seat counts have been invented.',
+        sourceNote: 'No local timetable is available for this search. Server-side provider APIs are disabled; the Chrome bridge can only show seat-status text captured from your own IRCTC browser page. No trains or seat counts have been invented.',
         generatedAt: new Date().toISOString()
       });
     }
@@ -347,7 +341,7 @@ export default async function handler(req, res) {
       providerError: railCoreFailure,
       sourceNote: railCoreFailure
         ? `RailCore could not complete this search (${railCoreFailure}). SmartRail used the locally imported timetable as a fallback. Seat availability is shown only when the separately configured authorised availability provider confirms every leg. This fallback is only as current as the imported timetable; verify its source and update date.`
-        : 'Routes are based on the locally imported timetable. Seat availability is shown only when a separate authorised provider confirms every leg.',
+        : 'Routes are based on the locally imported timetable. Server-side provider calls are disabled; captured IRCTC status appears in the browser bridge panel.',
       generatedAt: new Date().toISOString()
     });
   } catch (error) {
