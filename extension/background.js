@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const payload = {
       from: String(raw.from || "").trim().slice(0, 100),
       to: String(raw.to || "").trim().slice(0, 100),
-      date: /^\\d{4}-\\d{2}-\\d{2}$/.test(String(raw.date || "")) ? raw.date : "",
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(raw.date || "")) ? raw.date : "",
       travelClass: String(raw.travelClass || "ALL").toUpperCase()
     };
     const allowedClasses = new Set(["ALL","1A","2A","3A","3E","SL","2S","CC","EC","EA","EV","FC"]);
