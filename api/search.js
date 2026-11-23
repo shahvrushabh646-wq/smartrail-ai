@@ -146,6 +146,7 @@ export default async function handler(req, res) {
     const railCore = await loadAdapter('RailCore', () => import('../server/railcore.js'));
     const railRadar = await loadAdapter('RailRadar', () => import('../server/railradar.js'));
     const irctcDev = await loadAdapter('IRCTC.dev', () => import('../server/irctcdev.js'));
+    const railKit = await loadAdapter('RailKit', () => import('../server/railkit.js'));
 
     const getLiveAvailability = provider?.getLiveAvailability || (async () => ({
       status: 'UNAVAILABLE',
@@ -157,6 +158,8 @@ export default async function handler(req, res) {
     const searchRailRadarJourney = railRadar?.searchRailRadarJourney;
     const isIrctcDevConfigured = irctcDev?.isIrctcDevConfigured || (() => false);
     const searchIrctcDevJourney = irctcDev?.searchIrctcDevJourney;
+    const isRailKitConfigured = railKit?.isRailKitConfigured || (() => false);
+    const searchRailKitJourney = railKit?.searchRailKitJourney;
 
     let railCoreFailure = null;
     if (isRailCoreConfigured()) {
@@ -220,6 +223,36 @@ export default async function handler(req, res) {
         });
       } catch (error) {
         railCoreFailure = error?.message || 'RailCore is temporarily unavailable.';
+      }
+    }
+
+    // RailKit server-side fallback: no browser extension or client-side IRCTC tab.
+    // This is a separate provider key and its REST usage is metered by RailKit.
+    if ((railCoreFailure || !isRailCoreConfigured()) && isRailKitConfigured() && routeType !== 'VIA') {
+      try {
+        const remote = await searchRailKitJourney(fromInput, toInput, date, travelClass);
+        const directResults = routeType === 'VIA' ? [] : remote.results;
+        const connectionResults = routeType === 'DIRECT' ? [] : (all.length
+          ? await addLocalAvailability(findConnections(all, remote.from, remote.to), date, travelClass, getLiveAvailability)
+          : []);
+        const results = [...directResults, ...connectionResults];
+        results.sort((a, b) => {
+          if (a.segments.length !== b.segments.length) return a.segments.length - b.segments.length;
+          return (a.interchangeMinutes || 0) - (b.interchangeMinutes || 0);
+        });
+        return res.status(200).json({
+          from: remote.from, to: remote.to, date, results,
+          timetableRecords: all.length, source: remote.source,
+          providerCheckedAt: remote.providerCheckedAt,
+          availabilityChecked: remote.availabilityChecked,
+          availabilityLimit: remote.availabilityLimit,
+          availabilityCreditsRequested: remote.availabilityCreditsRequested,
+          routeType, providerError: railCoreFailure,
+          sourceNote: `${remote.sourceNote} ${connectionResults.length ? 'Imported-timetable connections are also included where data is available.' : ''}`,
+          generatedAt: new Date().toISOString()
+        });
+      } catch (railKitError) {
+        railCoreFailure = [railCoreFailure, `RailKit: ${railKitError?.message || 'provider error'}`].filter(Boolean).join(' | ');
       }
     }
 
