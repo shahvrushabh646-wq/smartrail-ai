@@ -115,17 +115,14 @@ Station names are resolved through the configured provider. If a name matches mu
 This is an informational search tool, not a booking engine. Recheck availability at the final booking source before purchasing tickets.
 
 
-## Optional Chrome extension — browser-visible IRCTC availability
+## Server-side seat availability (no Chrome extension required)
 
-SmartRail includes an optional Chrome/Edge extension bridge in `extension/`. It reads class-wise status text already visible on an IRCTC page you open yourself and displays captured observations in SmartRail search results. This is a browser companion, not an independent live availability API.
+SmartRail calls railway data providers from its backend. The optional browser bridge is not needed for search.
 
-Install:
-1. Open `chrome://extensions` and enable Developer mode.
-2. Click **Load unpacked** and select this repository's `extension` directory.
-3. Open SmartRail AI in a tab.
-4. In another tab, open IRCTC, search the same journey, and expand/check availability so the class status is visible.
-5. Return to SmartRail and click **Refresh from browser**.
+### RailKit backend fallback
 
-The extension does not log in, book, submit forms, read cookies, call private APIs, or bypass CAPTCHA. It stores up to 80 recent observations in Chrome local storage. Page markup may change, so only recognized rows appear; unrecognized/missing status is **not captured**, not unavailable. Refresh before booking.
+Set the server environment variable `RAILKIT_API_KEY` in Vercel Project Settings → Environment Variables (Production and Preview as appropriate). RailKit is used as a fallback when RailCore is not configured or fails. The key stays on the server and is never sent to the browser.
 
-See [extension installation and limitations](extension/README.md).
+Optional `RAILKIT_AVAILABILITY_TRAIN_LIMIT` controls how many direct trains receive class-wise checks (default `3`, maximum `10`). RailKit charges/limits requests according to the account plan; checking every class across many trains can use quota quickly. Unchecked train/class rows are labelled **NOT CHECKED**. RailKit's documented seat response does not include a per-class upstream timestamp, so its status is shown as provider-reported/unverified rather than independently freshness-confirmed.
+
+RailKit REST documentation: [train search](https://railkit.in/docs/train-search) and [seat availability](https://railkit.in/docs/seat-availability).

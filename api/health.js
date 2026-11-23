@@ -19,6 +19,7 @@ export default function handler(req, res) {
   const irctcDevConfigured = Boolean(
     process.env.IRCTC_API_KEY && process.env.SMARTRAIL_PERSONAL_ACCESS_CODE
   );
+  const railKitConfigured = Boolean(process.env.RAILKIT_API_KEY);
 
   return res.status(200).json({
     ok: true,
@@ -28,8 +29,9 @@ export default function handler(req, res) {
     backupScheduleProviderConfigured: railRadarConfigured,
     customAvailabilityProviderConfigured: customAvailabilityConfigured,
     irctcDevConfigured,
+    railKitConfigured,
     anyProviderConfigured: railCoreConfigured || railRadarConfigured ||
-      customAvailabilityConfigured || irctcDevConfigured,
+      customAvailabilityConfigured || irctcDevConfigured || railKitConfigured,
     deployment: {
       environment: process.env.VERCEL_ENV || 'unknown',
       commit: process.env.VERCEL_GIT_COMMIT_SHA || null,
