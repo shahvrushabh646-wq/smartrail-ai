@@ -37,8 +37,37 @@ async function broadcastBridgeStatus(status) {
     chrome.tabs.sendMessage(tab.id, { type: "SMARTRAIL_IRCTC_BRIDGE_STATUS", status }).catch(() => null)));
 }
 
+async function waitForTabComplete(tabId, timeoutMs = 45000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab.status === "complete" && tab.url?.startsWith("https://www.irctc.co.in/")) return true;
+    } catch {
+      return false;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  return false;
+}
+
 async function dispatchAutoSearch(tabId, payload) {
-  for (let attempt = 0; attempt < 24; attempt++) {
+  const loaded = await waitForTabComplete(tabId);
+  if (!loaded) {
+    await broadcastBridgeStatus("IRCTC page is still loading or did not finish loading. Keep the IRCTC tab open and try Search trains again.");
+    return;
+  }
+
+  // Ensure the listener exists even if Chrome missed the content-script injection
+  // on a tab that was already open or had just navigated.
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["irctc-content.js"] });
+  } catch (error) {
+    await broadcastBridgeStatus("Could not activate the IRCTC page bridge. Reload the SmartRail extension and retry.");
+    return;
+  }
+
+  for (let attempt = 0; attempt < 30; attempt++) {
     try {
       const result = await chrome.tabs.sendMessage(tabId, { type: "SMARTRAIL_IRCTC_AUTO_SEARCH", payload });
       if (result?.ok) {
@@ -50,9 +79,9 @@ async function dispatchAutoSearch(tabId, payload) {
         return;
       }
     } catch {}
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
-  await broadcastBridgeStatus("IRCTC page did not respond to automatic search. Reload the IRCTC tab and retry.");
+  await broadcastBridgeStatus("IRCTC page bridge is not responding. Open the IRCTC tab, then retry Search trains.");
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -86,12 +115,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!tab.url?.includes("/nget/train-search")) update.url = "https://www.irctc.co.in/nget/train-search";
         await chrome.tabs.update(tab.id, update);
         if (tab.windowId != null) await chrome.windows.update(tab.windowId, { focused: true });
-        if (isAutoSearch) dispatchAutoSearch(tab.id, payload);
+        if (isAutoSearch) void dispatchAutoSearch(tab.id, payload);
         sendResponse({ ok: true, opened: false, tabId: tab.id, searchQueued: isAutoSearch });
         return;
       }
       const created = await chrome.tabs.create({ url: "https://www.irctc.co.in/nget/train-search", active: true });
-      if (isAutoSearch) dispatchAutoSearch(created.id, payload);
+      if (isAutoSearch) void dispatchAutoSearch(created.id, payload);
       sendResponse({ ok: true, opened: true, tabId: created.id, searchQueued: isAutoSearch });
     })().catch(error => sendResponse({ ok: false, error: error?.message || "Could not open IRCTC" }));
     return true;
