@@ -58,23 +58,5 @@
 
 .irctc-verify{align-self:center;white-space:nowrap;font-size:10px;font-weight:700;color:#286bc9;text-decoration:none;margin-left:14px}.irctc-verify:hover{text-decoration:underline}@media(max-width:560px){.classrow{flex-wrap:wrap;gap:8px}.irctc-verify{margin-left:auto}}
 
-/* Browser-captured IRCTC status bridge */
-.browser-availability{background:#fff;border:1px solid #dbe6f4;border-radius:14px;padding:16px;margin:14px 0 18px;box-shadow:0 6px 20px #122d4a08}
-.browser-availability-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.browser-availability-head b{display:block;font:700 14px Manrope;color:#18324f}
-.browser-availability-head small,.browser-status small{display:block;color:#72849a;font-size:10px;margin-top:5px}
-.bridge-refresh{margin:0;padding:10px 13px;background:#2675ec;color:white;font-size:11px;white-space:nowrap}
-.bridge-help{font-size:12px;line-height:1.6;color:#687b91;margin:12px 0 4px}
-.bridge-help a{color:#286bc9;font-weight:700}
-.browser-status-list{display:grid;gap:8px;margin-top:12px}
-.browser-status{display:grid;grid-template-columns:64px minmax(100px,1fr) 44px auto;align-items:center;gap:10px;border-top:1px solid #edf1f6;padding:10px 0;font-size:12px}
-.browser-status>b{color:#1c3551}
-.browser-status>span{color:#61758d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.browser-status>strong{color:#286bc9}
-.browser-status>em{font-style:normal;font-weight:700;color:#246b42;background:#e9f8ef;border-radius:6px;padding:5px 8px}
-.browser-status small{grid-column:1/-1;margin-top:0}
-.bridge-clear{margin:10px 0 0;padding:8px 11px;background:#edf3fb;color:#5d7188;font-size:10px}
-@media(max-width:600px){.browser-availability-head{align-items:flex-start;flex-direction:column}.browser-status{grid-template-columns:52px minmax(70px,1fr) 36px}.browser-status>em{grid-column:1/-1;justify-self:start}.browser-status small{grid-column:1/-1}}
-
 .backend-status-note{display:flex;flex-direction:column;gap:6px;background:#f3f7fc;border:1px solid #dce7f4;border-radius:12px;padding:13px 15px;margin:12px 0 18px;color:#60758d;font-size:11px;line-height:1.55}
 .backend-status-note b{font-size:12px;color:#18324f}
