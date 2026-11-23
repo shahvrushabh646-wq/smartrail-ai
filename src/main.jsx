@@ -180,7 +180,7 @@ function App() {
               </div>
               <button type="button" className="bridge-refresh" onClick={() => window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin)}>Refresh from browser</button>
             </div>
-            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension, then open IRCTC in another tab and show the train’s class-wise availability. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/feature/irctc-browser-availability-bridge/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
+            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension, then open IRCTC in another tab and show the train’s class-wise availability. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
             {extensionStatus === 'connected' && irctcSnapshots.filter(item => !item.date || item.date === date).length === 0
               ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. Open IRCTC, search the same journey and expand/check availability so the status is visible.</p>
               : <div className="browser-status-list">
