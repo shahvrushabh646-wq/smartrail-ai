@@ -48,7 +48,7 @@ function App() {
         }
         const payload = await response.json();
         if (!response.ok || !payload.ok) throw new Error(payload.error || `Health check failed (HTTP ${response.status}).`);
-        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured || payload.irctcDevConfigured || payload.railKitConfigured));
+        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured || payload.irctcDevConfigured));
         setIrctcDevConfigured(Boolean(payload.irctcDevConfigured));
         setApiStatus('online');
       })
@@ -161,7 +161,6 @@ function App() {
         {!data && !error && <div className="empty">Choose Direct + Via, Direct only, or Via station only, then enter your journey details.</div>}
         {data && <>
           <div className="notice">{data.sourceNote}</div>
-          <div className="backend-status-note"><b>Backend availability</b><span>SmartRail fetches train and seat status through its configured server-side railway provider. No Chrome extension or IRCTC browser tab is required. Provider-reported status and last checked time appear with each class.</span></div>
           {data.results.length === 0
             ? <div className="empty"><b>No matching routes found.</b><span>{data.timetableRecords === 0 && !data.source ? "Connect a train-data provider to enable live journey search." : "No train matched this station pair on the selected date. Try station codes or another date."}</span></div>
             : data.results.map((route, index) => (
