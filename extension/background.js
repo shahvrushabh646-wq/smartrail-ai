@@ -30,6 +30,29 @@ async function broadcastSnapshots(snapshots) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "SMARTRAIL_IRCTC_AUTO_OPEN") {
+    const senderUrl = sender?.url || "";
+    const allowedSender = senderUrl.startsWith("https://smartrail-ai-mu.vercel.app/") ||
+      (senderUrl.startsWith("https://") && senderUrl.includes(".vercel.app/")) ||
+      senderUrl.startsWith("http://localhost:5173/");
+    if (!allowedSender) {
+      sendResponse({ ok: false, error: "Untrusted SmartRail sender" });
+      return;
+    }
+    (async () => {
+      const existing = await chrome.tabs.query({ url: ["https://www.irctc.co.in/*"] });
+      const tab = existing.find(item => item.url?.includes("/nget/train-search")) || existing[0];
+      if (tab?.id != null) {
+        await chrome.tabs.update(tab.id, { active: true });
+        if (tab.windowId != null) await chrome.windows.update(tab.windowId, { focused: true });
+        sendResponse({ ok: true, opened: false, tabId: tab.id });
+        return;
+      }
+      const created = await chrome.tabs.create({ url: "https://www.irctc.co.in/nget/train-search", active: true });
+      sendResponse({ ok: true, opened: true, tabId: created.id });
+    })().catch(error => sendResponse({ ok: false, error: error?.message || "Could not open IRCTC" }));
+    return true;
+  }
   if (message?.type === "SMARTRAIL_IRCTC_STORE") {
     const senderUrl = sender?.url || "";
     if (!senderUrl.startsWith("https://www.irctc.co.in/")) {
