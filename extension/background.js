@@ -96,6 +96,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })().catch(error => sendResponse({ ok: false, error: error?.message || "Could not open IRCTC" }));
     return true;
   }
+  if (message?.type === "SMARTRAIL_IRCTC_BRIDGE_STATUS") {
+    const senderUrl = sender?.url || "";
+    if (!senderUrl.startsWith("https://www.irctc.co.in/")) {
+      sendResponse({ ok: false, error: "Untrusted sender" });
+      return;
+    }
+    broadcastBridgeStatus(String(message.status || "IRCTC bridge running").slice(0, 240));
+    sendResponse({ ok: true });
+    return;
+  }
+
   if (message?.type === "SMARTRAIL_IRCTC_STORE") {
     const senderUrl = sender?.url || "";
     if (!senderUrl.startsWith("https://www.irctc.co.in/")) {
