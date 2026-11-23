@@ -7,7 +7,8 @@
     if (event.source !== window || event.origin !== location.origin) return;
     if (event.data?.type === "SMARTRAIL_IRCTC_AUTO_OPEN") {
       chrome.runtime.sendMessage({ type: "SMARTRAIL_IRCTC_AUTO_OPEN" }).catch(() => {});
-    }\n    if (event.data?.type === "SMARTRAIL_IRCTC_REQUEST") {
+    }
+    if (event.data?.type === "SMARTRAIL_IRCTC_REQUEST") {
       chrome.runtime.sendMessage({ type: "SMARTRAIL_IRCTC_GET" })
         .then(payload => sendToPage("SMARTRAIL_IRCTC_RESPONSE", payload || { installed: true, snapshots: [] }))
         .catch(() => sendToPage("SMARTRAIL_IRCTC_RESPONSE", { installed: false, snapshots: [] }));
