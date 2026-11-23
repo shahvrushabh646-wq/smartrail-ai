@@ -10,7 +10,7 @@ The extension bridges **only status text currently visible** on your own IRCTC p
 4. Choose **Load unpacked** and select the repository's `extension` folder.
 5. Open SmartRail AI: https://smartrail-ai-mu.vercel.app/
 
-After installation, press **Search trains** in SmartRail. The extension automatically opens or focuses an IRCTC tab. Sign in if needed, search your journey on IRCTC, and make the class-wise availability text visible; the bridge captures it and sends it to SmartRail.
+After installation, press **Search trains** in SmartRail. The extension sends your selected origin, destination, journey date and class to the bridge, opens or focuses the IRCTC train-search page, and attempts to fill and submit the visible journey form. It then checks visible class availability controls and sends status text back to SmartRail. Login, CAPTCHA, or station/date picker confirmation may still require your action. This is browser UI automation initiated by your SmartRail search, not a backend IRCTC feed.
 
 ## Important
 
