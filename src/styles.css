@@ -75,3 +75,6 @@
 .browser-status small{grid-column:1/-1;margin-top:0}
 .bridge-clear{margin:10px 0 0;padding:8px 11px;background:#edf3fb;color:#5d7188;font-size:10px}
 @media(max-width:600px){.browser-availability-head{align-items:flex-start;flex-direction:column}.browser-status{grid-template-columns:52px minmax(70px,1fr) 36px}.browser-status>em{grid-column:1/-1;justify-self:start}.browser-status small{grid-column:1/-1}}
+
+.backend-status-note{display:flex;flex-direction:column;gap:6px;background:#f3f7fc;border:1px solid #dce7f4;border-radius:12px;padding:13px 15px;margin:12px 0 18px;color:#60758d;font-size:11px;line-height:1.55}
+.backend-status-note b{font-size:12px;color:#18324f}
