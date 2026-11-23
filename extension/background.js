@@ -23,7 +23,7 @@ function cleanSnapshot(input) {
 
 async function broadcastSnapshots(snapshots) {
   const tabs = await chrome.tabs.query({
-    url: ["https://smartrail-ai-mu.vercel.app/*", "http://localhost:5173/*"]
+    url: ["https://smartrail-ai-mu.vercel.app/*", "https://smartrail-git-feature-visible-irctc-extension-v2-vs-38ee.vercel.app/*", "http://localhost:5173/*"]
   });
   await Promise.all(tabs.map(tab => tab.id == null ? Promise.resolve() :
     chrome.tabs.sendMessage(tab.id, { type: "SMARTRAIL_IRCTC_UPDATE", snapshots }).catch(() => null)));
