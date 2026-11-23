@@ -124,20 +124,44 @@ export async function searchRailKitJourney(fromInput, toInput, date, travelClass
     const offered = train.classes.length ? train.classes.filter(cls => CLASSES.includes(cls)) : CLASSES;
     const requested = travelClass === 'ALL' ? offered : offered.includes(travelClass) ? [travelClass] : [];
     const classes = selectedNumbers.has(train.trainNo) ? requested : [];
-    const availability = await Promise.all(classes.map(cls => fetchClass(train, date, cls).catch(error => ({
-      class: cls, status: 'ERROR', results: [], source: 'RailKit',
-      freshness: 'UNKNOWN', providerStatus: 'REQUEST FAILED',
-      reason: error?.message || 'RailKit availability request failed.'
-    }))));
-    if (!classes.length) {
+    const availability = classes.map(cls => ({
+      class: cls, status: 'PENDING', results: [], source: 'RailKit',
+      freshness: 'UNKNOWN', providerStatus: 'CHECKING'
+    }));
+    return { segments: [train], availability, source: 'RailKit', via: null };
+  }));
+  const jobs = [];
+  for (let routeIndex = 0; routeIndex < unique.length; routeIndex++) {
+    const train = unique[routeIndex];
+    const route = results[routeIndex];
+    if (!selectedNumbers.has(train.trainNo)) {
+      const offered = train.classes.length ? train.classes.filter(cls => CLASSES.includes(cls)) : CLASSES;
       const list = travelClass === 'ALL' ? offered : [travelClass];
-      for (const cls of list) availability.push({
+      route.availability = list.map(cls => ({
         class: cls, status: 'UNAVAILABLE', results: [], source: 'RailKit',
         freshness: 'UNKNOWN', providerStatus: 'NOT CHECKED',
         reason: `Not checked in this search. Seat checks are limited to the first ${trainLimit} trains to control API usage.`
-      });
+      }));
+      continue;
     }
-    return { segments: [train], availability, source: 'RailKit', via: null };
+    for (const item of route.availability) jobs.push({ train, item });
+  }
+  // Keep provider traffic bounded to four concurrent seat checks to reduce
+  // burst-limit failures when All Classes is selected.
+  let cursor = 0;
+  await Promise.all(Array.from({ length: Math.min(4, jobs.length) }, async () => {
+    while (cursor < jobs.length) {
+      const job = jobs[cursor++];
+      try {
+        const fresh = await fetchClass(job.train, date, job.item.class);
+        Object.assign(job.item, fresh);
+      } catch (error) {
+        Object.assign(job.item, {
+          status: 'ERROR', providerStatus: 'REQUEST FAILED',
+          reason: error?.message || 'RailKit availability request failed.'
+        });
+      }
+    }
   }));
   return {
     from, to, results, source: 'RailKit',
