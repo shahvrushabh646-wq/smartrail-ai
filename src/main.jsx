@@ -33,9 +33,6 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [apiStatus, setApiStatus] = useState('checking');
-  const [providerReady, setProviderReady] = useState(false);
-  const [irctcDevConfigured, setIrctcDevConfigured] = useState(false);
-  const [irctcAccessCode, setIrctcAccessCode] = useState('');
   const [irctcSnapshots, setIrctcSnapshots] = useState([]);
   const [extensionStatus, setExtensionStatus] = useState('checking');
 
@@ -50,8 +47,6 @@ function App() {
         }
         const payload = await response.json();
         if (!response.ok || !payload.ok) throw new Error(payload.error || `Health check failed (HTTP ${response.status}).`);
-        setProviderReady(Boolean(payload.scheduleProviderConfigured || payload.backupScheduleProviderConfigured || payload.customAvailabilityProviderConfigured || payload.irctcDevConfigured));
-        setIrctcDevConfigured(Boolean(payload.irctcDevConfigured));
         setApiStatus('online');
       })
       .catch(() => setApiStatus('offline'))
@@ -87,6 +82,7 @@ function App() {
     setBusy(true);
     setError('');
     setData(null);
+    window.postMessage({ type: 'SMARTRAIL_IRCTC_AUTO_OPEN' }, window.location.origin);
     window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin);
     try {
       const response = await fetch(`/api/search?fresh=${Date.now()}`, {
@@ -97,7 +93,6 @@ function App() {
           Accept: 'application/json',
           'Cache-Control': 'no-cache, no-store, max-age=0',
           Pragma: 'no-cache',
-          ...(irctcAccessCode ? { 'x-smr-personal-access-code': irctcAccessCode } : {})
         },
         body: JSON.stringify({ from, to, date, travelClass, routeType })
       });
@@ -141,9 +136,6 @@ function App() {
         <p className="sub">Compare direct trains and connecting routes via an interchange station.</p>
         <form onSubmit={search}>
           <div className="fields">
-            {irctcDevConfigured && <label>PERSONAL ACCESS CODE
-              <input type="password" value={irctcAccessCode} onChange={e => setIrctcAccessCode(e.target.value)} placeholder="Enter your private access code" autoComplete="off" />
-            </label>}
             <label>FROM
               <input value={from} onChange={e => setFrom(e.target.value)} placeholder="e.g. PUNE or Pune Junction" autoComplete="off" required />
             </label>
@@ -180,9 +172,9 @@ function App() {
               </div>
               <button type="button" className="bridge-refresh" onClick={() => window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin)}>Refresh from browser</button>
             </div>
-            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension, then open IRCTC in another tab and show the train’s class-wise availability. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
+            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension. When you press Search trains, it will open or focus IRCTC automatically; sign in if needed, search your journey, and make the class-wise availability visible. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
             {extensionStatus === 'connected' && irctcSnapshots.filter(item => !item.date || item.date === date).length === 0
-              ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. Open IRCTC, search the same journey and expand/check availability so the status is visible.</p>
+              ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. In the automatically opened IRCTC tab, search the same journey and make the availability text visible.</p>
               : <div className="browser-status-list">
                   {irctcSnapshots.filter(item => !item.date || item.date === date).slice(0, 24).map((item, index) => (
                     <div className="browser-status" key={item.trainNo + item.travelClass + item.date + index}>
