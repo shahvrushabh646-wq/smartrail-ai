@@ -2,6 +2,7 @@
   const CLASS_RE = /\b(1A|2A|3A|3E|SL|2S|CC|EC|EA|EV|FC)\b/i;
   const STATUS_RE = /\b(AVAILABLE\s*[-: ]\s*\d+|AVAIL(?:ABLE)?\s*\d+|RAC\s*[-: ]?\s*\d+|WL\s*[-: ]?\s*\d+|WAITLIST\s*[-: ]?\s*\d+|REGRET|NOT\s+AVAILABLE)\b/i;
   let lastSignature = "";
+  let activeSearch = null;
 
   function pageDate() {
     const params = new URLSearchParams(location.search);
