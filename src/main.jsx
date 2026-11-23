@@ -35,6 +35,7 @@ function App() {
   const [apiStatus, setApiStatus] = useState('checking');
   const [irctcSnapshots, setIrctcSnapshots] = useState([]);
   const [extensionStatus, setExtensionStatus] = useState('checking');
+  const [bridgeStatus, setBridgeStatus] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -58,7 +59,12 @@ function App() {
     function handleBridgeMessage(event) {
       if (event.source !== window || event.origin !== window.location.origin) return;
       const message = event.data;
-      if (!message || !['SMARTRAIL_IRCTC_RESPONSE', 'SMARTRAIL_IRCTC_UPDATE'].includes(message.type)) return;
+      if (!message) return;
+      if (message.type === 'SMARTRAIL_IRCTC_BRIDGE_STATUS') {
+        setBridgeStatus(String(message.payload || ''));
+        return;
+      }
+      if (!['SMARTRAIL_IRCTC_RESPONSE', 'SMARTRAIL_IRCTC_UPDATE'].includes(message.type)) return;
       const payload = message.payload || {};
       setExtensionStatus(payload.installed ? 'connected' : 'not-installed');
       setIrctcSnapshots(Array.isArray(payload.snapshots) ? payload.snapshots : []);
@@ -82,7 +88,7 @@ function App() {
     setBusy(true);
     setError('');
     setData(null);
-    window.postMessage({ type: 'SMARTRAIL_IRCTC_AUTO_OPEN' }, window.location.origin);
+    window.postMessage({ type: 'SMARTRAIL_IRCTC_AUTO_SEARCH', payload: { from, to, date, travelClass } }, window.location.origin);
     window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin);
     try {
       const response = await fetch(`/api/search?fresh=${Date.now()}`, {
@@ -173,6 +179,7 @@ function App() {
               <button type="button" className="bridge-refresh" onClick={() => window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin)}>Refresh from browser</button>
             </div>
             {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension. When you press Search trains, it will open or focus IRCTC automatically; sign in if needed, search your journey, and make the class-wise availability visible. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/main/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
+            {bridgeStatus && <p className="bridge-help">{bridgeStatus}</p>}
             {extensionStatus === 'connected' && irctcSnapshots.filter(item => !item.date || item.date === date).length === 0
               ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. In the automatically opened IRCTC tab, search the same journey and make the availability text visible.</p>
               : <div className="browser-status-list">
