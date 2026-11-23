@@ -27,7 +27,7 @@
 
   function capture() {
     if (!location.hostname.endsWith("irctc.co.in") || !document.body) return;
-    const date = pageDate();
+    const date = activeSearch?.date || pageDate();
     const candidates = Array.from(document.querySelectorAll("tr,[role='row'],.availability,.train-list,.trainList,.train-card,.trainCard,.ng-star-inserted"));
     const rows = [];
     const seen = new Set();
@@ -190,18 +190,21 @@
   }
 
   function clickClassAvailability(travelClass) {
-    if (!activeSearch?.submitted || !travelClass || travelClass === "ALL" || availabilityTriggered) return;
-    availabilityTriggered = true;
+    if (!activeSearch?.submitted || availabilityTriggered) return;
+    const classCodes = new Set(["1A","2A","3A","3E","SL","2S","CC","EC","EA","EV","FC"]);
+    const wanted = travelClass && travelClass !== "ALL" ? new Set([travelClass]) : classCodes;
     const controls = Array.from(document.querySelectorAll("button,[role='button'],a"))
       .filter(visible)
-      .filter(item => (item.innerText || item.textContent || "").trim().toUpperCase() === travelClass)
-      .slice(0, 8);
+      .filter(item => wanted.has((item.innerText || item.textContent || "").trim().toUpperCase()))
+      .slice(0, travelClass && travelClass !== "ALL" ? 8 : 16);
+    if (!controls.length) return;
+    availabilityTriggered = true;
     controls.forEach((control, index) => setTimeout(() => {
       if (!control.dataset.smartrailAvailabilityClicked) {
         control.dataset.smartrailAvailabilityClicked = "1";
         control.click();
       }
-    }, index * 450));
+    }, index * 500));
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
