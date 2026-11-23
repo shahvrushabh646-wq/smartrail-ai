@@ -113,16 +113,3 @@ Station names are resolved through the configured provider. If a name matches mu
 7. Check `/api/health`, then test a journey search.
 
 This is an informational search tool, not a booking engine. Recheck availability at the final booking source before purchasing tickets.
-
-
-## Server-side seat availability (no Chrome extension required)
-
-SmartRail calls railway data providers from its backend. The optional browser bridge is not needed for search.
-
-### RailKit backend fallback
-
-Set the server environment variable `RAILKIT_API_KEY` in Vercel Project Settings → Environment Variables (Production and Preview as appropriate). RailKit is used as a fallback when RailCore is not configured or fails. The key stays on the server and is never sent to the browser.
-
-Optional `RAILKIT_AVAILABILITY_TRAIN_LIMIT` controls how many direct trains receive class-wise checks (default `3`, maximum `10`). RailKit charges/limits requests according to the account plan; checking every class across many trains can use quota quickly. Unchecked train/class rows are labelled **NOT CHECKED**. RailKit's documented seat response does not include a per-class upstream timestamp, so its status is shown as provider-reported/unverified rather than independently freshness-confirmed.
-
-RailKit REST documentation: [train search](https://railkit.in/docs/train-search) and [seat availability](https://railkit.in/docs/seat-availability).
