@@ -9,6 +9,7 @@
   ],
   "host_permissions": [
     "https://www.irctc.co.in/*",
+    "https://*.vercel.app/*",
     "https://smartrail-ai-mu.vercel.app/*",
     "https://smartrail-git-feature-visible-irctc-extension-v2-vs-38ee.vercel.app/*",
     "http://localhost:5173/*"
@@ -28,6 +29,7 @@
     },
     {
       "matches": [
+        "https://*.vercel.app/*",
         "https://smartrail-ai-mu.vercel.app/*",
         "https://smartrail-git-feature-visible-irctc-extension-v2-vs-38ee.vercel.app/*",
         "http://localhost:5173/*"
