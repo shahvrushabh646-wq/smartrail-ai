@@ -1,6 +1,6 @@
 # SmartRail AI — IRCTC Availability Bridge
 
-The extension bridges **only status text currently visible** on your own IRCTC page to SmartRail in the same Chrome/Edge browser. It does not call a separate availability API, log in, book tickets, submit forms, read cookies, or bypass CAPTCHA.
+The extension bridges **only status text currently visible** on your own IRCTC page to SmartRail in the same Chrome/Edge browser. It does not call a separate availability API, log in, book tickets, read cookies, or bypass CAPTCHA. After a user starts a SmartRail search, it may fill and submit the visible IRCTC train-search form and open visible class-availability controls.
 
 ## Install (one-time)
 
