@@ -5,10 +5,16 @@
 
   window.addEventListener("message", event => {
     if (event.source !== window || event.origin !== location.origin) return;
-    if (event.data?.type !== "SMARTRAIL_IRCTC_REQUEST") return;
-    chrome.runtime.sendMessage({ type: "SMARTRAIL_IRCTC_GET" })
-      .then(payload => sendToPage("SMARTRAIL_IRCTC_RESPONSE", payload || { installed: true, snapshots: [] }))
-      .catch(() => sendToPage("SMARTRAIL_IRCTC_RESPONSE", { installed: false, snapshots: [] }));
+    if (event.data?.type === "SMARTRAIL_IRCTC_REQUEST") {
+      chrome.runtime.sendMessage({ type: "SMARTRAIL_IRCTC_GET" })
+        .then(payload => sendToPage("SMARTRAIL_IRCTC_RESPONSE", payload || { installed: true, snapshots: [] }))
+        .catch(() => sendToPage("SMARTRAIL_IRCTC_RESPONSE", { installed: false, snapshots: [] }));
+    }
+    if (event.data?.type === "SMARTRAIL_IRCTC_CLEAR") {
+      chrome.runtime.sendMessage({ type: "SMARTRAIL_IRCTC_CLEAR" })
+        .then(() => sendToPage("SMARTRAIL_IRCTC_RESPONSE", { installed: true, snapshots: [] }))
+        .catch(() => sendToPage("SMARTRAIL_IRCTC_RESPONSE", { installed: true, snapshots: [] }));
+    }
   });
 
   chrome.runtime.onMessage.addListener(message => {
