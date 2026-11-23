@@ -141,7 +141,7 @@
   }
 
   async function automaticJourneySearch(payload) {
-    if (!payload?.from || !payload?.to || !/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.date || "")) {
+    if (!payload?.from || !payload?.to || !/^\d{4}-\d{2}-\d{2}$/.test(payload.date || "")) {
       return { ok: false, error: "SmartRail journey details are incomplete." };
     }
     activeSearch = { ...payload, submitted: false };
