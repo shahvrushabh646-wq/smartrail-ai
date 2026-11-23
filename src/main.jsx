@@ -36,6 +36,8 @@ function App() {
   const [providerReady, setProviderReady] = useState(false);
   const [irctcDevConfigured, setIrctcDevConfigured] = useState(false);
   const [irctcAccessCode, setIrctcAccessCode] = useState('');
+  const [irctcSnapshots, setIrctcSnapshots] = useState([]);
+  const [extensionStatus, setExtensionStatus] = useState('checking');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,6 +59,24 @@ function App() {
     return () => { clearTimeout(timeout); controller.abort(); };
   }, []);
 
+  useEffect(() => {
+    function handleBridgeMessage(event) {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const message = event.data;
+      if (!message || !['SMARTRAIL_IRCTC_RESPONSE', 'SMARTRAIL_IRCTC_UPDATE'].includes(message.type)) return;
+      const payload = message.payload || {};
+      setExtensionStatus(payload.installed ? 'connected' : 'not-installed');
+      setIrctcSnapshots(Array.isArray(payload.snapshots) ? payload.snapshots : []);
+    }
+    window.addEventListener('message', handleBridgeMessage);
+    window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin);
+    const detectTimer = setTimeout(() => setExtensionStatus(current => current === 'checking' ? 'not-detected' : current), 1800);
+    return () => {
+      clearTimeout(detectTimer);
+      window.removeEventListener('message', handleBridgeMessage);
+    };
+  }, []);
+
   function swapStations() {
     setFrom(to);
     setTo(from);
@@ -67,6 +87,7 @@ function App() {
     setBusy(true);
     setError('');
     setData(null);
+    window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin);
     try {
       const response = await fetch(`/api/search?fresh=${Date.now()}`, {
         method: 'POST',
@@ -161,6 +182,30 @@ function App() {
         {!data && !error && <div className="empty">Choose Direct + Via, Direct only, or Via station only, then enter your journey details.</div>}
         {data && <>
           <div className="notice">{data.sourceNote}</div>
+          <section className="browser-availability" aria-label="IRCTC browser availability">
+            <div className="browser-availability-head">
+              <div>
+                <b>IRCTC browser availability</b>
+                <small>{extensionStatus === 'connected' ? 'Chrome extension connected' : extensionStatus === 'checking' ? 'Checking browser extension…' : 'Extension not detected'}</small>
+              </div>
+              <button type="button" className="bridge-refresh" onClick={() => window.postMessage({ type: 'SMARTRAIL_IRCTC_REQUEST' }, window.location.origin)}>Refresh from browser</button>
+            </div>
+            {extensionStatus !== 'connected' && <p className="bridge-help">Install the SmartRail IRCTC Availability Bridge extension, then open IRCTC in another tab and show the train’s class-wise availability. <a href="https://github.com/shahvrushabh646-wq/smartrail-ai/tree/feature/irctc-browser-availability-bridge/extension" target="_blank" rel="noreferrer">Installation steps ↗</a></p>}
+            {extensionStatus === 'connected' && irctcSnapshots.filter(item => !item.date || item.date === date).length === 0
+              ? <p className="bridge-help">Extension is connected, but no matching status has been captured for this journey date yet. Open IRCTC, search the same journey and expand/check availability so the status is visible.</p>
+              : <div className="browser-status-list">
+                  {irctcSnapshots.filter(item => !item.date || item.date === date).slice(0, 24).map((item, index) => (
+                    <div className="browser-status" key={item.trainNo + item.travelClass + item.date + index}>
+                      <b>{item.trainNo}</b><span>{item.trainName || 'Train status'}</span><strong>{item.travelClass}</strong><em>{item.statusText}</em>
+                      <small>Observed {new Date(item.observedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST · Browser-visible IRCTC</small>
+                    </div>
+                  ))}
+                </div>}
+            {irctcSnapshots.length > 0 && <button type="button" className="bridge-clear" onClick={() => {
+              window.postMessage({ type: 'SMARTRAIL_IRCTC_CLEAR' }, window.location.origin);
+              setIrctcSnapshots([]);
+            }}>Clear captured statuses</button>}
+          </section>
           {data.results.length === 0
             ? <div className="empty"><b>No matching routes found.</b><span>{data.timetableRecords === 0 && !data.source ? "Connect a train-data provider to enable live journey search." : "No train matched this station pair on the selected date. Try station codes or another date."}</span></div>
             : data.results.map((route, index) => (
